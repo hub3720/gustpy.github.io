@@ -1,119 +1,140 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Jarvis V3 — Assistente Online</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Jarvis IA Espacial</title>
 <style>
-  :root {
-    --bg: #0b0f13;
-    --panel: #07111a;
-    --accent: #66ccff;
-    --muted: #9fb3c8;
-  }
-  html,body{height:100%;margin:0;background:var(--bg);color:#dbeaf6;font-family:Inter,system-ui,Arial}
-  .app{max-width:900px;margin:12px auto;border-radius:12px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
-  .panel{display:flex;height:85vh;background:linear-gradient(180deg,#07121a 0%, #041018 100%)}
-  .left{width:360px;border-right:1px solid rgba(255,255,255,0.03);padding:14px;box-sizing:border-box;background:var(--panel)}
-  .brand{font-weight:700;color:var(--accent);font-size:18px;margin-bottom:8px}
-  .muted{color:var(--muted);font-size:13px}
-  .right{flex:1;display:flex;flex-direction:column}
-  .messages{flex:1;padding:18px;overflow:auto;gap:12px;display:flex;flex-direction:column-reverse}
-  .composer{display:flex;padding:12px;border-top:1px solid rgba(255,255,255,0.03);align-items:center;gap:8px}
-  textarea{flex:1;min-height:44px;max-height:140px;padding:10px;border-radius:8px;border:0;background:#071722;color:#e8f6ff;resize:none;outline:none}
-  button{background:var(--accent);border:0;padding:10px 12px;border-radius:8px;color:#001;font-weight:700;cursor:pointer}
-  .msg{max-width:78%;padding:10px 12px;border-radius:10px;line-height:1.35}
-  .user{align-self:flex-end;background:linear-gradient(90deg,#2b6bff,#66ccff);color:#001;border-bottom-right-radius:2px}
-  .bot{align-self:flex-start;background:#071c27;border:1px solid rgba(255,255,255,0.03)}
-  .small{font-size:12px;color:var(--muted)}
-  footer{font-size:12px;color:var(--muted);text-align:center;padding:8px}
-  @media(max-width:800px){.panel{flex-direction:column}.left{width:auto;border-right:0}}
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:sans-serif;color:#fff}
+  canvas{position:absolute;top:0;left:0;z-index:0}
+  #ui{position:absolute;top:10px;left:10px;z-index:1;width:95%;max-width:600px}
+  #chat{display:flex;flex-direction:column-reverse;gap:6px;max-height:60vh;overflow-y:auto;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px}
+  .msg{padding:8px;border-radius:6px;max-width:80%}
+  .user{align-self:flex-end;background:linear-gradient(90deg,#2b6bff,#66ccff);color:#001}
+  .bot{align-self:flex-start;background:#071c27;border:1px solid rgba(255,255,255,0.1)}
+  #inputArea{display:flex;margin-top:6px}
+  #msgInput{flex:1;padding:10px;border-radius:6px;border:none;background:#111;color:#fff;outline:none}
+  #sendBtn{padding:10px;border-radius:6px;border:none;background:#66ccff;color:#001;cursor:pointer;font-weight:700;margin-left:4px}
 </style>
 </head>
 <body>
-<div class="app" role="application" aria-label="Jarvis V3">
-  <div class="panel">
-    <div class="left">
-      <div class="brand">Jarvis V3</div>
-      <div class="muted">Assistente Online — Busca em tempo real</div>
-      <div class="small" style="margin-top:12px">Hospede no GitHub Pages. Não usa API externa, totalmente front-end.</div>
-    </div>
-    <div class="right">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid rgba(255,255,255,0.03)">
-        <div><strong>Conversa</strong><div class="small muted">Jarvis V3 — avançado e prestativo</div></div>
-      </div>
-      <div id="messageContainer" class="messages" aria-live="polite"></div>
-      <div class="composer">
-        <textarea id="input" placeholder="Escreva algo e pressione Enter..." aria-label="Mensagem"></textarea>
-        <button id="sendBtn">Enviar</button>
-      </div>
-    </div>
+<canvas id="bg"></canvas>
+<div id="ui">
+  <div id="chat"></div>
+  <div id="inputArea">
+    <input id="msgInput" placeholder="Digite algo..." />
+    <button id="sendBtn">Enviar</button>
   </div>
-  <footer>Jarvis V3 • 100% front-end • Busca em tempo real</footer>
 </div>
 
 <script>
-const input = document.getElementById('input');
-const sendBtn = document.getElementById('sendBtn');
-const container = document.getElementById('messageContainer');
+// --- Canvas fundo espacial ---
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let W = canvas.width = window.innerWidth;
+let H = canvas.height = window.innerHeight;
+window.addEventListener('resize',()=>{W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight;});
 
-let conversation = [];
-
-// append message
-function appendMessage(text, who='bot'){
-  const el = document.createElement('div');
-  el.className = 'msg ' + (who==='user' ? 'user' : 'bot');
-  el.textContent = text;
-  container.prepend(el);
-  return el;
+// partículas estilo estrelas
+const stars = [];
+for(let i=0;i<300;i++){
+  stars.push({x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.5+0.5, dx:(Math.random()-0.5)*0.2, dy:(Math.random()-0.5)*0.2});
 }
 
-// busca na web usando DuckDuckGo
-async function searchWeb(query){
-  try{
-    const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`)}`;
-    const resp = await fetch(url);
-    if(!resp.ok) return null;
-    const data = await resp.json();
-    const html = data.contents;
-    // extrai texto simples
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    const texts = Array.from(doc.querySelectorAll('a.result__a')).map(a => a.textContent);
-    return texts.slice(0,5).join('. ') || "Nenhuma informação encontrada.";
-  }catch(e){
-    return "Erro ao buscar na web.";
+// --- Sprites Pokémon ---
+const sprites = [];
+const NUM_POKEMON = 15;
+async function loadPokemonSprites(){
+  for(let i=1;i<=NUM_POKEMON;i++){
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${i}`);
+    const data = await res.json();
+    const img = new Image();
+    img.src = data.sprites.front_default;
+    sprites.push({img,x:Math.random()*W,y:Math.random()*H,dx:(Math.random()-0.5)*2,dy:(Math.random()-0.5)*2});
+  }
+}
+loadPokemonSprites();
+
+// --- Chat IA simples com aprendizado ---
+const chat = document.getElementById('chat');
+const input = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendBtn');
+
+// memória local da IA
+let memory = JSON.parse(localStorage.getItem('jarvisMemory')||'{}');
+
+function saveMemory(){ localStorage.setItem('jarvisMemory',JSON.stringify(memory)); }
+
+function appendMessage(msg,type){
+  const div = document.createElement('div'); div.className='msg '+type; div.textContent=msg;
+  chat.prepend(div);
+}
+
+// função principal de IA: busca resposta ou aprende
+function getResponse(text){
+  text=text.toLowerCase();
+  // se já aprendeu algo parecido
+  for(const key in memory){
+    if(text.includes(key)) return memory[key];
+  }
+  // fallback
+  return "Ainda não sei sobre isso, me ensine!";
+}
+
+function learnResponse(userInput, botReply){
+  memory[userInput.toLowerCase()] = botReply;
+  saveMemory();
+}
+
+// evento enviar
+sendBtn.addEventListener('click',()=>{sendMessage();});
+input.addEventListener('keydown',e=>{if(e.key==='Enter'){sendMessage();}});
+
+function sendMessage(){
+  const txt=input.value.trim();
+  if(!txt) return;
+  appendMessage(txt,'user');
+  input.value='';
+  
+  let reply = getResponse(txt);
+  appendMessage(reply,'bot');
+
+  // se bot não sabe, esperar usuário ensinar
+  if(reply.includes("Ainda não sei")){
+    const userTeach = prompt("Como eu devo responder a '"+txt+"'?");
+    if(userTeach){
+      learnResponse(txt,userTeach);
+      appendMessage("Obrigado! Aprendi isso.","bot");
+    }
   }
 }
 
-// gerar resposta do Jarvis
-async function jarvisResponse(prompt){
-  conversation.push({role:'user', content: prompt});
-  let webInfo = await searchWeb(prompt);
-  let answer = `Pesquisando na internet: ${webInfo}`;
-  conversation.push({role:'bot', content: answer});
-  return answer;
+// --- animação do fundo ---
+function animate(){
+  ctx.fillStyle='black';
+  ctx.fillRect(0,0,W,H);
+
+  // estrelas
+  ctx.fillStyle='white';
+  for(const s of stars){
+    s.x+=s.dx; s.y+=s.dy;
+    if(s.x<0)s.x=W;if(s.x>W)s.x=0;
+    if(s.y<0)s.y=H;if(s.y>H)s.y=0;
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+  }
+
+  // pokemons
+  for(const p of sprites){
+    if(!p.img.complete) continue;
+    p.x+=p.dx; p.y+=p.dy;
+    if(p.x<0)p.x=W;if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    ctx.drawImage(p.img,p.x,p.y,32,32);
+  }
+
+  requestAnimationFrame(animate);
 }
-
-// enviar mensagem
-async function sendMessage(){
-  const text = input.value.trim();
-  if(!text) return;
-  appendMessage(text, 'user');
-  input.value = '';
-  const loader = appendMessage('…', 'bot');
-
-  const reply = await jarvisResponse(text);
-  loader.textContent = reply;
-  container.scrollTop = 0;
-}
-
-// UI wiring
-sendBtn.addEventListener('click', sendMessage);
-input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
-
-// welcome
-appendMessage('Olá — eu sou Jarvis V3, posso pesquisar na internet e te responder com base no que encontro.', 'bot');
+animate();
 </script>
 </body>
 </html>
