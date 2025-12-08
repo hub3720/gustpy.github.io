@@ -1,140 +1,149 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Jarvis IA Espacial</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jarvis V5 - IA Interativa</title>
 <style>
-  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:sans-serif;color:#fff}
-  canvas{position:absolute;top:0;left:0;z-index:0}
-  #ui{position:absolute;top:10px;left:10px;z-index:1;width:95%;max-width:600px}
-  #chat{display:flex;flex-direction:column-reverse;gap:6px;max-height:60vh;overflow-y:auto;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px}
-  .msg{padding:8px;border-radius:6px;max-width:80%}
-  .user{align-self:flex-end;background:linear-gradient(90deg,#2b6bff,#66ccff);color:#001}
-  .bot{align-self:flex-start;background:#071c27;border:1px solid rgba(255,255,255,0.1)}
-  #inputArea{display:flex;margin-top:6px}
-  #msgInput{flex:1;padding:10px;border-radius:6px;border:none;background:#111;color:#fff;outline:none}
-  #sendBtn{padding:10px;border-radius:6px;border:none;background:#66ccff;color:#001;cursor:pointer;font-weight:700;margin-left:4px}
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font-family:sans-serif;}
+  canvas{position:absolute;top:0;left:0;display:block;}
+  #ui{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;pointer-events:none;}
+  #chat{width:90%;max-width:500px;background:rgba(0,0,0,0.6);border-radius:12px;padding:12px;pointer-events:auto;display:flex;flex-direction:column;}
+  .msg{margin:4px 0;padding:6px 10px;border-radius:8px;max-width:80%;word-wrap:break-word;}
+  .user{align-self:flex-end;background:linear-gradient(90deg,#2b6bff,#66ccff);color:#001;}
+  .bot{align-self:flex-start;background:#111;border:1px solid rgba(255,255,255,0.2);}
+  #inputArea{display:flex;margin-top:6px;}
+  #inputArea input{flex:1;padding:8px;border-radius:6px;border:none;background:#222;color:#fff;}
+  #inputArea button{padding:8px 12px;margin-left:4px;border:none;border-radius:6px;background:#66ccff;color:#001;cursor:pointer;}
 </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
 <div id="ui">
-  <div id="chat"></div>
-  <div id="inputArea">
-    <input id="msgInput" placeholder="Digite algo..." />
-    <button id="sendBtn">Enviar</button>
+  <div id="chat">
+    <div id="messages"></div>
+    <div id="inputArea">
+      <input id="input" placeholder="Escreva algo..." />
+      <button id="sendBtn">Enviar</button>
+    </div>
   </div>
 </div>
 
 <script>
-// --- Canvas fundo espacial ---
-const canvas = document.getElementById('bg');
-const ctx = canvas.getContext('2d');
-let W = canvas.width = window.innerWidth;
-let H = canvas.height = window.innerHeight;
-window.addEventListener('resize',()=>{W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight;});
-
-// partículas estilo estrelas
-const stars = [];
-for(let i=0;i<300;i++){
-  stars.push({x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.5+0.5, dx:(Math.random()-0.5)*0.2, dy:(Math.random()-0.5)*0.2});
+// ================= FUNDO DE ESTRELAS =================
+const canvas=document.getElementById('bg');
+const ctx=canvas.getContext('2d');
+let stars=[];
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+window.addEventListener('resize',resize);
+resize();
+for(let i=0;i<250;i++){
+  stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.5+0.5,speed:Math.random()*0.5+0.2});
 }
-
-// --- Sprites Pokémon ---
-const sprites = [];
-const NUM_POKEMON = 15;
-async function loadPokemonSprites(){
-  for(let i=1;i<=NUM_POKEMON;i++){
-    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${i}`);
-    const data = await res.json();
-    const img = new Image();
-    img.src = data.sprites.front_default;
-    sprites.push({img,x:Math.random()*W,y:Math.random()*H,dx:(Math.random()-0.5)*2,dy:(Math.random()-0.5)*2});
+function drawStars(){
+  ctx.fillStyle='black';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='white';
+  for(let s of stars){
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fill();
+    s.x-=s.speed;
+    if(s.x<0)s.x=canvas.width;
   }
 }
-loadPokemonSprites();
 
-// --- Chat IA simples com aprendizado ---
-const chat = document.getElementById('chat');
-const input = document.getElementById('msgInput');
-const sendBtn = document.getElementById('sendBtn');
-
-// memória local da IA
-let memory = JSON.parse(localStorage.getItem('jarvisMemory')||'{}');
-
-function saveMemory(){ localStorage.setItem('jarvisMemory',JSON.stringify(memory)); }
-
-function appendMessage(msg,type){
-  const div = document.createElement('div'); div.className='msg '+type; div.textContent=msg;
-  chat.prepend(div);
+// ================= SPRITES POKÉMON/AMONG US =================
+const sprites=[];
+const spriteImages=[];
+const spriteURLs=[
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png",
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png",
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png"
+];
+for(let url of spriteURLs){const img=new Image();img.src=url;spriteImages.push(img);}
+for(let i=0;i<8;i++){
+  sprites.push({img:spriteImages[i%spriteImages.length],x:Math.random()*canvas.width,y:Math.random()*canvas.height,speed:Math.random()*1+0.5,dirY:(Math.random()>0.5?1:-1)});
+}
+function drawSprites(){
+  for(let s of sprites){
+    ctx.drawImage(s.img,s.x,s.y,40,40);
+    s.x += s.speed;
+    s.y += s.dirY*s.speed*0.5;
+    if(s.x>canvas.width)s.x=-50;
+    if(s.y>canvas.height)s.dirY=-1;
+    if(s.y<0)s.dirY=1;
+  }
 }
 
-// função principal de IA: busca resposta ou aprende
-function getResponse(text){
+// ================= LOOP PRINCIPAL =================
+function loop(){drawStars();drawSprites();requestAnimationFrame(loop);}
+loop();
+
+// ================= CHATBOT =================
+const input=document.getElementById('input');
+const sendBtn=document.getElementById('sendBtn');
+const messages=document.getElementById('messages');
+
+let memory=JSON.parse(localStorage.getItem('jarvisMemory')||'{}');
+function saveMemory(){localStorage.setItem('jarvisMemory',JSON.stringify(memory));}
+
+function appendMessage(text,who){
+  const div=document.createElement('div');
+  div.className='msg '+who;
+  div.textContent=text;
+  messages.appendChild(div);
+  messages.scrollTop=messages.scrollHeight;
+  return div;
+}
+
+// ======= FUNÇÕES DE IA =======
+// Pesquisa na web via DuckDuckGo Instant Answer API
+async function fetchAnswer(query){
+  try{
+    const res=await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`);
+    const data=await res.json();
+    if(data.AbstractText && data.AbstractText.length>0) return data.AbstractText;
+    if(data.RelatedTopics && data.RelatedTopics.length>0) return data.RelatedTopics[0].Text;
+    return null;
+  }catch(e){return null;}
+}
+
+// Função avançada de interpretação de texto
+async function getResponse(text){
   text=text.toLowerCase();
-  // se já aprendeu algo parecido
+  // 1) Checa memória
   for(const key in memory){
     if(text.includes(key)) return memory[key];
   }
-  // fallback
-  return "Ainda não sei sobre isso, me ensine!";
+  // 2) Greet simples
+  const greetings=["olá","oi","hello","hey"];
+  for(const g of greetings) if(text.includes(g)) return "Olá! Como posso te ajudar hoje?";
+  // 3) Pesquisa web
+  const webAnswer = await fetchAnswer(text);
+  if(webAnswer) return webAnswer;
+  // 4) Pergunta ao usuário
+  const teach=prompt(`Não sei como responder a "${text}". Como devo responder?`);
+  if(teach){memory[text]=teach;saveMemory();return "Obrigado! Aprendi isso.";}
+  return "Desculpe, ainda não sei responder a isso.";
 }
 
-function learnResponse(userInput, botReply){
-  memory[userInput.toLowerCase()] = botReply;
-  saveMemory();
-}
-
-// evento enviar
-sendBtn.addEventListener('click',()=>{sendMessage();});
-input.addEventListener('keydown',e=>{if(e.key==='Enter'){sendMessage();}});
-
-function sendMessage(){
+// ======= ENVIO DE MENSAGEM =======
+async function sendMessage(){
   const txt=input.value.trim();
-  if(!txt) return;
+  if(!txt)return;
   appendMessage(txt,'user');
   input.value='';
-  
-  let reply = getResponse(txt);
-  appendMessage(reply,'bot');
-
-  // se bot não sabe, esperar usuário ensinar
-  if(reply.includes("Ainda não sei")){
-    const userTeach = prompt("Como eu devo responder a '"+txt+"'?");
-    if(userTeach){
-      learnResponse(txt,userTeach);
-      appendMessage("Obrigado! Aprendi isso.","bot");
-    }
-  }
+  const loader=appendMessage('…','bot');
+  const reply=await getResponse(txt);
+  loader.textContent=reply;
 }
 
-// --- animação do fundo ---
-function animate(){
-  ctx.fillStyle='black';
-  ctx.fillRect(0,0,W,H);
+sendBtn.addEventListener('click',sendMessage);
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 
-  // estrelas
-  ctx.fillStyle='white';
-  for(const s of stars){
-    s.x+=s.dx; s.y+=s.dy;
-    if(s.x<0)s.x=W;if(s.x>W)s.x=0;
-    if(s.y<0)s.y=H;if(s.y>H)s.y=0;
-    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
-  }
-
-  // pokemons
-  for(const p of sprites){
-    if(!p.img.complete) continue;
-    p.x+=p.dx; p.y+=p.dy;
-    if(p.x<0)p.x=W;if(p.x>W)p.x=0;
-    if(p.y<0)p.y=H;if(p.y>H)p.y=0;
-    ctx.drawImage(p.img,p.x,p.y,32,32);
-  }
-
-  requestAnimationFrame(animate);
-}
-animate();
+appendMessage("Olá! Eu sou Jarvis V5, seu assistente avançado. Pergunte qualquer coisa e eu vou buscar e interpretar!",'bot');
 </script>
 </body>
 </html>
