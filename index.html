@@ -202,16 +202,20 @@ async function loadBatch(){
   }
 
   loadedCount+=(end-start+1);
-
   if(loadedCount>=totalPokemons) loadMoreBtn.style.display='none';
 
-  // Fixa linhas de 3 cards
-  const remainder=container.children.length%3;
-  if(remainder>0){
-    for(let j=0;j<3-remainder;j++){
-      const filler=document.createElement('div');
-      filler.style.visibility='hidden';
-      container.appendChild(filler);
+  // Organiza cards em linhas de 3
+  if(currentView==='pokedex'){
+    const cards=Array.from(container.children);
+    container.innerHTML='';
+    for(let i=0;i<cards.length;i+=3){
+      const row=document.createElement('div');
+      row.style.display='flex';
+      row.style.gap='15px';
+      for(let j=0;j<3;j++){
+        if(cards[i+j]) row.appendChild(cards[i+j]);
+      }
+      container.appendChild(row);
     }
   }
 }
@@ -250,7 +254,7 @@ pokedexBtn.addEventListener('click',()=>{
 
   clearContainer();
   loadedCount=0;
-  allPokemons.length=0; // limpa array para reiniciar corretamente
+  allPokemons.length=0;
   loadMoreBtn.style.display='block';
   loadBatch();
 });
