@@ -36,7 +36,7 @@
   }
 
   .pokemon-card {
-    width: 250px;  /* deitado */
+    width: 250px;
     height: 120px;
     border-radius: 15px;
     display: flex;
@@ -47,8 +47,9 @@
     text-align: center;
     padding-left: 10px;
     box-sizing: border-box;
-    opacity: 0; /* para o efeito gradual */
+    opacity: 0;
     transition: opacity 0.3s;
+    cursor: pointer;
   }
 
   .pokemon-card.show {
@@ -71,7 +72,7 @@
   .pokemon-types {
     position: absolute;
     top: 5px;
-    right: 5px;
+    right: 25px;
     display: flex;
     gap: 3px;
   }
@@ -79,6 +80,44 @@
   .pokemon-type-img {
     width: 15px;
     height: 15px;
+  }
+
+  .detail-box {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 10px;
+    border-radius: 10px;
+    max-width: 180px;
+    text-align: left;
+    display: none;
+    z-index: 10;
+  }
+
+  .detail-box h4 {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+  }
+
+  .detail-box p {
+    margin: 2px 0;
+    font-size: 12px;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: red;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    cursor: pointer;
   }
 
   @media (max-width: 600px) {
@@ -96,6 +135,11 @@
     .pokemon-type-img {
       width: 12px;
       height: 12px;
+    }
+
+    .detail-box {
+      max-width: 140px;
+      font-size: 11px;
     }
   }
 </style>
@@ -137,12 +181,26 @@ const typeColors = {
   fairy: "#D685AD"
 };
 
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 async function fetchPokemon(id) {
   try {
     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
     const data = await res.json();
     return data;
   } catch (err) {
+    console.error(err);
+  }
+}
+
+async function fetchPokemonSpecies(id) {
+  try {
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+    const data = await res.json();
+    return data;
+  } catch(err) {
     console.error(err);
   }
 }
@@ -175,28 +233,56 @@ function createPokemonCard(pokemon) {
   card.appendChild(img);
 
   const name = document.createElement('div');
-  name.textContent = pokemon.name;
+  name.textContent = capitalize(pokemon.name);
   card.appendChild(name);
+
+  // Caixa de detalhes
+  const detailBox = document.createElement('div');
+  detailBox.classList.add('detail-box');
+  card.appendChild(detailBox);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.classList.add('close-btn');
+  closeBtn.textContent = "X";
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    detailBox.style.display = 'none';
+  });
+  detailBox.appendChild(closeBtn);
+
+  // Clique abre descrição detalhada
+  card.addEventListener('click', async () => {
+    detailBox.innerHTML = '';
+    detailBox.appendChild(closeBtn);
+    detailBox.style.display = 'block';
+    const species = await fetchPokemonSpecies(pokemon.id);
+    const flavor = species.flavor_text_entries.find(f => f.language.name === "en")?.flavor_text.replace(/\n|\f/g, ' ') || "Sem descrição.";
+    
+    // Simula level e raridade baseado no id
+    const level = Math.min(100, Math.floor(pokemon.id/10)+1);
+    const rarity = ["Common","Uncommon","Rare","Epic","Legendary"][Math.floor(pokemon.id/300*5)] || "Common";
+
+    detailBox.innerHTML += `<h4>${capitalize(pokemon.name)}</h4>`;
+    detailBox.innerHTML += `<p><strong>Level:</strong> ${level}</p>`;
+    detailBox.innerHTML += `<p><strong>Rarity:</strong> ${rarity}</p>`;
+    detailBox.innerHTML += `<p>${flavor}</p>`;
+    detailBox.appendChild(closeBtn);
+  });
 
   container.appendChild(card);
 
-  // Efeito gradual de aparição
-  setTimeout(() => {
-    card.classList.add('show');
-  }, 50);
+  setTimeout(() => card.classList.add('show'), 50);
 }
 
-// Carrega Pokémon gradualmente
 async function loadPokemons() {
   for (let i = 1; i <= totalPokemons; i++) {
     const pokemon = await fetchPokemon(i);
     allPokemons.push(pokemon);
     createPokemonCard(pokemon);
-    await new Promise(res => setTimeout(res, 30)); // efeito "ligando na TV"
+    await new Promise(res => setTimeout(res, 30));
   }
 }
 
-// Busca Pokémon
 searchInput.addEventListener('input', () => {
   const value = searchInput.value.toLowerCase();
   container.innerHTML = '';
