@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pokedex Geração 1-3</title>
+<title>Pokedex e Game</title>
 <style>
 body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:flex; }
 
@@ -70,16 +70,14 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
 <body>
 
 <div class="sidebar" id="sidebar">
-  <h2>Sidebar</h2>
-  <button onclick="filterType('fire')">Fire</button>
-  <button onclick="filterType('water')">Water</button>
-  <button onclick="filterType('grass')">Grass</button>
-  <button onclick="resetFilter()">All</button>
+  <h2>Menu</h2>
+  <button id="start-game-btn">Start Game</button>
+  <button id="pokedex-btn" style="display:none;">Pokedex</button>
 </div>
 
 <div class="content">
   <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
-  <div class="search-container">
+  <div class="search-container" id="search-container">
     <input type="text" id="search" placeholder="Digite o nome do Pokémon...">
   </div>
   <div class="pokemon-container" id="pokemon-container"></div>
@@ -94,11 +92,9 @@ const searchInput=document.getElementById('search');
 const loadMoreBtn=document.getElementById('load-more');
 const sidebar=document.getElementById('sidebar');
 const sidebarToggle=document.getElementById('sidebar-toggle');
-const totalPokemons=386; // Geração 1-3
-const batchSize=150;
-let loadedCount=0;
-const allPokemons=[];
-let currentFilter=null;
+const startGameBtn=document.getElementById('start-game-btn');
+const pokedexBtn=document.getElementById('pokedex-btn');
+const searchContainer=document.getElementById('search-container');
 
 const typeColors={ normal:"#A8A77A", fire:"#EE8130", water:"#6390F0", electric:"#F7D02C",
   grass:"#7AC74C", ice:"#96D9D6", fighting:"#C22E28", poison:"#A33EA1",
@@ -106,13 +102,20 @@ const typeColors={ normal:"#A8A77A", fire:"#EE8130", water:"#6390F0", electric:"
   rock:"#B6A136", ghost:"#735797", dragon:"#6F35FC", dark:"#705746",
   steel:"#B7B7CE", fairy:"#D685AD" };
 
+let currentView='pokedex'; // "pokedex" ou "game"
+let loadedCount=0;
+const batchSize=150;
+const totalPokemons=386;
+const allPokemons=[];
+let selectedPokemon=null;
+
 function upper(str){ return str.toUpperCase(); }
 async function fetchPokemon(id){ const res=await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`); return await res.json(); }
 async function fetchPokemonSpecies(id){ const res=await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`); return await res.json(); }
 
-function createPokemonCard(pokemon){
-  if(currentFilter && !pokemon.types.some(t=>t.type.name===currentFilter)) return;
+function clearContainer(){ container.innerHTML=''; }
 
+function createPokemonCard(pokemon, showDetails=true){
   const card=document.createElement('div');
   const primaryType=pokemon.types[0].type.name;
   card.classList.add('pokemon-card');
@@ -143,40 +146,45 @@ function createPokemonCard(pokemon){
   name.textContent=upper(pokemon.name);
   card.appendChild(name);
 
-  const detailBox=document.createElement('div');
-  detailBox.classList.add('detail-box');
-  detailBox.style.backgroundColor=typeColors[primaryType];
-  card.appendChild(detailBox);
+  if(showDetails){
+    const detailBox=document.createElement('div');
+    detailBox.classList.add('detail-box');
+    detailBox.style.backgroundColor=typeColors[primaryType];
+    card.appendChild(detailBox);
 
-  const closeBtn=document.createElement('button');
-  closeBtn.classList.add('close-btn');
-  closeBtn.textContent="X";
-  closeBtn.addEventListener('click',e=>{ e.stopPropagation(); detailBox.style.display='none'; });
-  detailBox.appendChild(closeBtn);
-
-  card.addEventListener('click',async()=>{
-    detailBox.style.display='block';
-    detailBox.innerHTML='';
+    const closeBtn=document.createElement('button');
+    closeBtn.classList.add('close-btn');
+    closeBtn.textContent="X";
+    closeBtn.addEventListener('click',e=>{ e.stopPropagation(); detailBox.style.display='none'; });
     detailBox.appendChild(closeBtn);
 
-    const species=await fetchPokemonSpecies(pokemon.id);
-    const flavor=species.flavor_text_entries.find(f=>f.language.name==="en")?.flavor_text.replace(/\n|\f/g,' ')||"No description.";
+    card.addEventListener('click',async()=>{
+      detailBox.style.display='block';
+      detailBox.innerHTML='';
+      detailBox.appendChild(closeBtn);
 
-    let evolveLevel="•";
-    if(species.evolution_chain){
-      try{
-        const evoRes=await fetch(species.evolution_chain.url);
-        const evoData=await evoRes.json();
-        const evoDetails=evoData.chain.evolves_to.find(e=>e.species.name===pokemon.name);
-        if(evoDetails&&evoDetails.evolution_details.length>0) evolveLevel=evoDetails.evolution_details[0].min_level||"•";
-      }catch(e){ evolveLevel="•"; }
-    }
+      const species=await fetchPokemonSpecies(pokemon.id);
+      const flavor=species.flavor_text_entries.find(f=>f.language.name==="en")?.flavor_text.replace(/\n|\f/g,' ')||"No description.";
 
-    detailBox.innerHTML+=`<h4>${upper(pokemon.name)}</h4>`;
-    detailBox.innerHTML+=`<p>Evolve Level: ${evolveLevel}</p>`;
-    detailBox.innerHTML+=`<p>${flavor}</p>`;
-    detailBox.appendChild(closeBtn);
-  });
+      let evolveLevel="•";
+      if(species.evolution_chain){
+        try{
+          const evoRes=await fetch(species.evolution_chain.url);
+          const evoData=await evoRes.json();
+          const evoDetails=evoData.chain.evolves_to.find(e=>e.species.name===pokemon.name);
+          if(evoDetails&&evoDetails.evolution_details.length>0) evolveLevel=evoDetails.evolution_details[0].min_level||"•";
+        }catch(e){ evolveLevel="•"; }
+      }
+
+      detailBox.innerHTML+=`<h4>${upper(pokemon.name)}</h4>`;
+      detailBox.innerHTML+=`<p>Evolve Level: ${evolveLevel}</p>`;
+      detailBox.innerHTML+=`<p>${flavor}</p>`;
+      detailBox.appendChild(closeBtn);
+    });
+  } else {
+    // game selection click
+    card.addEventListener('click',()=>{ selectedPokemon=pokemon; alert("Você selecionou "+upper(pokemon.name)); });
+  }
 
   container.appendChild(card);
   setTimeout(()=>card.classList.add('show'),50);
@@ -190,7 +198,7 @@ async function loadBatch(){
   for(let i=start;i<=end;i++){
     const pokemon=await fetchPokemon(i);
     allPokemons.push(pokemon);
-    createPokemonCard(pokemon);
+    if(currentView==='pokedex') createPokemonCard(pokemon,true);
     await new Promise(res=>setTimeout(res,delay));
   }
 
@@ -210,17 +218,40 @@ async function loadBatch(){
 searchInput.addEventListener('input',()=>{
   const value=searchInput.value.toLowerCase();
   container.innerHTML='';
-  allPokemons.filter(p=>p.name.includes(value)).forEach(p=>createPokemonCard(p));
+  allPokemons.filter(p=>p.name.includes(value)).forEach(p=>createPokemonCard(p,true));
 });
 
 loadMoreBtn.addEventListener('click',()=>{ loadBatch(); });
 sidebarToggle.addEventListener('click',()=>{ sidebar.classList.toggle('show'); });
 
-function filterType(type){ currentFilter=type; container.innerHTML=''; allPokemons.forEach(p=>createPokemonCard(p)); }
-function resetFilter(){ currentFilter=null; container.innerHTML=''; allPokemons.forEach(p=>createPokemonCard(p)); }
+// START GAME
+startGameBtn.addEventListener('click',async()=>{
+  currentView='game';
+  pokedexBtn.style.display='block';
+  startGameBtn.style.display='none';
+  searchContainer.style.display='none';
+  clearContainer();
+  loadMoreBtn.style.display='none';
+  const startersIds=[1,4,7,152,155,158,252,255,258]; // 3 iniciais por geração
+  for(const id of startersIds){
+    const p=await fetchPokemon(id);
+    createPokemonCard(p,false);
+  }
+});
 
-loadBatch();
+// VOLTAR PARA POKEDEX
+pokedexBtn.addEventListener('click',()=>{
+  currentView='pokedex';
+  pokedexBtn.style.display='none';
+  startGameBtn.style.display='block';
+  searchContainer.style.display='flex';
+  clearContainer();
+  loadedCount=0;
+  container.innerHTML='';
+  loadMoreBtn.style.display='block';
+  loadBatch();
+});
 </script>
 
 </body>
-  </html>
+</html>
