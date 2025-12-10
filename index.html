@@ -20,12 +20,9 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
   box-sizing:border-box;
   overflow-y:auto;
   z-index:1000;
-  transform:translateX(-100%);
-  transition: transform 0.3s ease;
   border-radius:0 10px 10px 0;
   border:2px solid #000;
 }
-.sidebar.active { transform:translateX(0); }
 .sidebar h2 { margin-top:0; font-size:18px; }
 .sidebar button { margin:5px 0; padding:8px 10px; width:100%; border:none; border-radius:10px; cursor:pointer; background:#fff; color:#000; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); border:2px solid #000; }
 .sidebar button:hover { background:#f0f0f0; }
@@ -51,7 +48,7 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
 /* CONTENT */
 .content { flex:1; display:flex; flex-direction:column; padding-left:200px; transition:padding-left 0.3s; }
 header { display:flex; align-items:center; padding:10px 20px; font-size:24px; font-weight:bold; color:#000; }
-header #page-title { margin-left:10px; } /* desloca título para direita do botão */
+header #page-title { margin-left:10px; } 
 .search-container { display:flex; justify-content:center; padding:10px 20px; }
 .search-container input {
   width:90%; max-width:500px;
@@ -92,9 +89,10 @@ header #page-title { margin-left:10px; } /* desloca título para direita do bot�
   font-weight:bold;
   padding:10px;
   box-sizing:border-box;
-  cursor:pointer;
   overflow:visible;
+  cursor:pointer;
 }
+.pokemon-card.no-click { cursor: default; }
 .pokemon-card img.pokemon-img {
   width:100px;
   height:100px;
@@ -105,16 +103,7 @@ header #page-title { margin-left:10px; } /* desloca título para direita do bot�
 .pokemon-name { margin:0; font-size:16px; text-align:left; }
 .pokemon-types { display:flex; gap:5px; margin-top:5px; }
 .pokemon-type-img { width:15px; height:15px; }
-.pokemon-number { font-size:14px; color:#fff; font-weight:bold; }
-
-/* CORES SUAVES NATURAIS */
-.type-colors {
-  normal:"#A8A77A"; fire:"#F08030"; water:"#6890F0"; electric:"#F8D030";
-  grass:"#78C850"; ice:"#98D8D8"; fighting:"#C03028"; poison:"#A040A0";
-  ground:"#E0C068"; flying:"#A890F0"; psychic:"#F85888"; bug:"#A8B820";
-  rock:"#B8A038"; ghost:"#705898"; dragon:"#7038F8"; dark:"#705848";
-  steel:"#B8B8D0"; fairy:"#EE99AC";
-}
+.pokemon-number { font-size:14px; color:#000; font-weight:bold; } /* # em preto */
 
 @media (max-width:600px) {
   .pokemon-card img.pokemon-img { width:80px; height:80px; top:-10px; }
@@ -173,10 +162,11 @@ function clearContainer(){ container.innerHTML=''; }
 
 menuBtn.addEventListener('click',()=>{ sidebar.classList.toggle('active'); });
 
-function createPokemonCard(pokemon){
+function createPokemonCard(pokemon,clickable=true){
   const card=document.createElement('div');
   const primaryType=pokemon.types[0].type.name;
   card.classList.add('pokemon-card');
+  if(!clickable) card.classList.add('no-click');
   card.style.backgroundColor=typeColors[primaryType]||"#777";
 
   const infoDiv=document.createElement('div');
@@ -210,17 +200,19 @@ function createPokemonCard(pokemon){
   img.classList.add('pokemon-img');
   card.appendChild(img);
 
-  card.addEventListener('click',()=>{
-    selectedPokemon=pokemon;
-    currentView='game';
-    pageTitle.textContent="Pokémons";
-    clearContainer();
-    showSelectedPokemonIVs();
-    pokedexBtn.style.display='block';
-    startGameBtn.style.display='none';
-    myPokemonBtn.style.display='block';
-    searchContainer.style.display='none';
-  });
+  if(clickable){
+    card.addEventListener('click',()=>{
+      selectedPokemon=pokemon;
+      currentView='game';
+      pageTitle.textContent="Pokémons";
+      clearContainer();
+      showSelectedPokemonIVs();
+      pokedexBtn.style.display='block';
+      startGameBtn.style.display='none';
+      myPokemonBtn.style.display='block';
+      searchContainer.style.display='none';
+    });
+  }
 
   container.appendChild(card);
 }
@@ -229,7 +221,7 @@ async function loadAllPokemons(){
   for(let i=1;i<=totalPokemons;i++){
     const p=await fetchPokemon(i);
     allPokemons.push(p);
-    if(currentView==='pokedex') createPokemonCard(p);
+    if(currentView==='pokedex') createPokemonCard(p,false); // Pokédex não clicável
   }
 }
 
@@ -304,7 +296,7 @@ function showSelectedPokemonIVs(){
 searchInput.addEventListener('input',()=>{
   const value=searchInput.value.toLowerCase();
   container.innerHTML='';
-  allPokemons.filter(p=>p.name.includes(value)).forEach(p=>createPokemonCard(p));
+  allPokemons.filter(p=>p.name.includes(value)).forEach(p=>createPokemonCard(p,false));
 });
 
 // Start Game
@@ -333,7 +325,7 @@ pokedexBtn.addEventListener('click',()=>{
   startGameBtn.style.display='none';
   searchContainer.style.display='flex';
   container.innerHTML='';
-  allPokemons.forEach(p=>createPokemonCard(p));
+  allPokemons.forEach(p=>createPokemonCard(p,false)); // Pokédex não clicável
 });
 
 // My Pokemon button
