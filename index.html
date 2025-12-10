@@ -45,20 +45,10 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
 .pokemon-types { position:absolute; top:5px; right:25px; display:flex; gap:3px; }
 .pokemon-type-img { width:15px; height:15px; }
 
-/* DETAIL BOX */
-.detail-box { position:absolute; top:5px; right:5px; padding:10px; border-radius:10px; max-width:180px; text-align:left; display:none; z-index:10; color:#fff; }
-.detail-box h4 { margin:0 0 5px 0; font-size:14px; }
-.detail-box p { margin:2px 0; font-size:12px; }
-.close-btn { position:absolute; top:2px; right:2px; background:red; color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:12px; cursor:pointer; }
-
 @media (max-width:600px) {
   .pokemon-card { height:100px; padding-left:5px; }
   .pokemon-card img.pokemon-img { width:70px; height:70px; }
   .pokemon-type-img { width:12px; height:12px; }
-  .detail-box { max-width:140px; font-size:11px; }
-  .sidebar { position:fixed; left:-220px; transition:0.3s; z-index:20; }
-  .sidebar.show { left:0; }
-  .sidebar-toggle { position:fixed; left:10px; top:10px; z-index:30; background:#000; color:#fff; border:none; padding:10px; border-radius:5px; cursor:pointer; }
 }
 </style>
 </head>
@@ -72,7 +62,6 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
 </div>
 
 <div class="content">
-  <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
   <div class="search-container" id="search-container">
     <input type="text" id="search" placeholder="Digite o nome do Pokémon...">
   </div>
@@ -82,8 +71,6 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
 <script>
 const container=document.getElementById('pokemon-container');
 const searchInput=document.getElementById('search');
-const sidebar=document.getElementById('sidebar');
-const sidebarToggle=document.getElementById('sidebar-toggle');
 const startGameBtn=document.getElementById('start-game-btn');
 const pokedexBtn=document.getElementById('pokedex-btn');
 const myPokemonBtn=document.getElementById('my-pokemon-btn');
@@ -96,13 +83,12 @@ const typeColors={ normal:"#A8A77A", fire:"#EE8130", water:"#6390F0", electric:"
   steel:"#B7B7CE", fairy:"#D685AD" };
 
 let currentView='pokedex'; 
-const totalPokemons=386;
+const totalPokemons=386; // gerações 1 a 3
 const allPokemons=[];
 let selectedPokemon=null;
 
 function upper(str){ return str.toUpperCase(); }
 async function fetchPokemon(id){ const res=await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`); return await res.json(); }
-async function fetchPokemonSpecies(id){ const res=await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`); return await res.json(); }
 
 function clearContainer(){ container.innerHTML=''; }
 
@@ -138,39 +124,10 @@ function createPokemonCard(pokemon, showDetails=true, onSelect=null){
   card.appendChild(name);
 
   if(showDetails){
-    const detailBox=document.createElement('div');
-    detailBox.classList.add('detail-box');
-    detailBox.style.backgroundColor=typeColors[primaryType];
-    card.appendChild(detailBox);
-
-    const closeBtn=document.createElement('button');
-    closeBtn.classList.add('close-btn');
-    closeBtn.textContent="X";
-    closeBtn.addEventListener('click',e=>{ e.stopPropagation(); detailBox.style.display='none'; });
-    detailBox.appendChild(closeBtn);
-
     card.addEventListener('click',async()=>{
-      detailBox.style.display='block';
-      detailBox.innerHTML='';
-      detailBox.appendChild(closeBtn);
-
-      const species=await fetchPokemonSpecies(pokemon.id);
-      const flavor=species.flavor_text_entries.find(f=>f.language.name==="en")?.flavor_text.replace(/\n|\f/g,' ')||"No description.";
-
-      let evolveLevel="•";
-      if(species.evolution_chain){
-        try{
-          const evoRes=await fetch(species.evolution_chain.url);
-          const evoData=await evoRes.json();
-          const evoDetails=evoData.chain.evolves_to.find(e=>e.species.name===pokemon.name);
-          if(evoDetails&&evoDetails.evolution_details.length>0) evolveLevel=evoDetails.evolution_details[0].min_level||"•";
-        }catch(e){ evolveLevel="•"; }
-      }
-
-      detailBox.innerHTML+=`<h4>${upper(pokemon.name)}</h4>`;
-      detailBox.innerHTML+=`<p>Evolve Level: ${evolveLevel}</p>`;
-      detailBox.innerHTML+=`<p>${flavor}</p>`;
-      detailBox.appendChild(closeBtn);
+      clearContainer();
+      selectedPokemon=pokemon;
+      showSelectedPokemon();
     });
   } else if(onSelect){
     card.addEventListener('click',()=>{
@@ -192,35 +149,6 @@ async function loadAllPokemons(){
     if(currentView==='pokedex') createPokemonCard(p,true);
   }
 }
-
-searchInput.addEventListener('input',()=>{
-  const value=searchInput.value.toLowerCase();
-  container.innerHTML='';
-  allPokemons.filter(p=>p.name.includes(value)).forEach(p=>createPokemonCard(p,true));
-});
-
-sidebarToggle.addEventListener('click',()=>{ sidebar.classList.toggle('show'); });
-
-// START GAME
-startGameBtn.addEventListener('click',async()=>{
-  currentView='game';
-  pokedexBtn.style.display='block';
-  startGameBtn.style.display='none';
-  myPokemonBtn.style.display='none';
-  searchContainer.style.display='none';
-  clearContainer();
-
-  const startersIds=[1,4,7,152,155,158,252,255,258]; 
-  for(const id of startersIds){
-    const p=allPokemons.find(x=>x.id===id) || await fetchPokemon(id);
-    createPokemonCard(p,false,(pokemon)=>{ 
-      selectedPokemon=p; 
-      myPokemonBtn.style.display='block'; 
-      startGameBtn.style.display='none'; 
-      showSelectedPokemon();
-    });
-  }
-});
 
 // FUNÇÃO PARA MOSTRAR POKEMON SELECIONADO COM IVs
 function showSelectedPokemon(){
@@ -269,23 +197,60 @@ function showSelectedPokemon(){
   });
   card.appendChild(typesContainer);
 
-  // IVs detalhados e percentuais
+  // IVs detalhados e percentual total
   const ivContainer=document.createElement('div');
   ivContainer.style.marginTop='10px';
   ivContainer.style.fontSize='12px';
   ivContainer.style.textAlign='left';
+
   const stats=['HP','Attack','Defense','Sp. Atk','Sp. Def','Speed'];
-  stats.forEach(stat=>{
-    const ivValue=15; // iniciais IV 15
-    const percent=Math.round((ivValue/15)*100);
+  const ivMax=30;
+  const ivs=stats.map(stat=>15); // iniciais
+  const totalIV=ivs.reduce((a,b)=>a+b,0);
+
+  stats.forEach((stat,index)=>{
+    const ivValue=ivs[index];
     const p=document.createElement('p');
-    p.textContent=`${stat}: ${ivValue} (${percent}%)`;
+    p.textContent=`${stat}: ${ivValue}`; // só o valor
     ivContainer.appendChild(p);
   });
-  card.appendChild(ivContainer);
 
+  const totalPercent=document.createElement('p');
+  totalPercent.style.fontWeight='bold';
+  totalPercent.textContent=`IV Percentual Total: ${Math.round((totalIV/(ivMax*stats.length))*100)}%`;
+  ivContainer.appendChild(totalPercent);
+
+  card.appendChild(ivContainer);
   container.appendChild(card);
 }
+
+// SEARCH
+searchInput.addEventListener('input',()=>{
+  const value=searchInput.value.toLowerCase();
+  clearContainer();
+  allPokemons.filter(p=>p.name.includes(value)).forEach(p=>createPokemonCard(p,true));
+});
+
+// START GAME
+startGameBtn.addEventListener('click',async()=>{
+  currentView='game';
+  pokedexBtn.style.display='block';
+  startGameBtn.style.display='none';
+  myPokemonBtn.style.display='none';
+  searchContainer.style.display='none';
+  clearContainer();
+
+  const startersIds=[1,4,7,152,155,158,252,255,258]; 
+  for(const id of startersIds){
+    const p=allPokemons.find(x=>x.id===id);
+    createPokemonCard(p,false,(pokemon)=>{
+      selectedPokemon=p; 
+      myPokemonBtn.style.display='block'; 
+      startGameBtn.style.display='none'; 
+      showSelectedPokemon();
+    });
+  }
+});
 
 // VOLTAR PARA POKEDEX
 pokedexBtn.addEventListener('click',()=>{
@@ -298,7 +263,7 @@ pokedexBtn.addEventListener('click',()=>{
   allPokemons.forEach(p=>createPokemonCard(p,true));
 });
 
-// VOLTAR PARA POKEMONS
+// VOLTAR PARA POKEMONS SELECIONADO
 myPokemonBtn.addEventListener('click',()=>{
   if(selectedPokemon){
     currentView='game';
@@ -314,4 +279,4 @@ loadAllPokemons();
 </script>
 
 </body>
-</html>
+  </html>
