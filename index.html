@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pokedex e Game</title>
+<title>Pokédex e Game</title>
 <style>
 body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:flex; }
 
@@ -24,30 +24,58 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
 
 /* CONTENT */
 .content { margin-left:200px; flex:1; display:flex; flex-direction:column; }
-.search-container { display:flex; justify-content:center; padding:20px; }
-.search-container input { width:90%; max-width:500px; padding:10px 15px; border:2px solid #000; border-radius:25px; font-size:16px; outline:none; }
+header { padding:10px 20px; font-size:24px; font-weight:bold; color:#000; }
+.search-container { display:flex; justify-content:center; padding:10px 20px; }
+.search-container input {
+  width:90%; max-width:500px;
+  padding:10px 15px;
+  border:2px solid #000;
+  border-radius:10px;
+  font-size:16px;
+  outline:none;
+}
+.search-container input::placeholder { color:#555; }
 
 /* POKEMON GRID */
 .pokemon-container {
   display:grid;
   grid-template-columns:repeat(3, 1fr);
-  gap:15px;
+  gap:25px; /* espaço maior para sobreposição */
   padding:10px;
 }
-
 @media(max-width:900px){ .pokemon-container { grid-template-columns:repeat(2,1fr); } }
 @media(max-width:600px){ .pokemon-container { grid-template-columns:1fr; } .content { margin-left:0; } }
 
 /* POKEMON CARD */
-.pokemon-card { width:100%; height:120px; border-radius:15px; display:flex; align-items:center; position:relative; color:#fff; font-weight:bold; text-align:center; padding-left:10px; box-sizing:border-box; cursor:pointer; }
-.pokemon-card img.pokemon-img { width:100px; height:100px; margin-right:10px; }
-.pokemon-number { position:absolute; top:5px; left:10px; font-size:14px; }
-.pokemon-types { position:absolute; top:5px; right:25px; display:flex; gap:3px; }
+.pokemon-card {
+  width:100%;
+  height:120px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:relative;
+  color:#fff;
+  font-weight:bold;
+  padding:10px;
+  box-sizing:border-box;
+  cursor:pointer;
+  overflow:visible;
+}
+.pokemon-card img.pokemon-img {
+  width:100px;
+  height:100px;
+  position:relative;
+  top:-15px;
+}
+.pokemon-info { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; }
+.pokemon-name { margin:0; font-size:16px; text-align:left; }
+.pokemon-types { display:flex; gap:5px; margin-top:5px; }
 .pokemon-type-img { width:15px; height:15px; }
 
 @media (max-width:600px) {
-  .pokemon-card { height:100px; padding-left:5px; }
-  .pokemon-card img.pokemon-img { width:70px; height:70px; }
+  .pokemon-card { height:100px; padding:5px; }
+  .pokemon-card img.pokemon-img { width:70px; height:70px; top:-10px; }
   .pokemon-type-img { width:12px; height:12px; }
 }
 </style>
@@ -62,8 +90,9 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
 </div>
 
 <div class="content">
+  <header>PokéDex</header>
   <div class="search-container" id="search-container">
-    <input type="text" id="search" placeholder="Digite o nome do Pokémon...">
+    <input type="text" id="search" placeholder="🔍 Qual Pokemon você esta procurando?">
   </div>
   <div class="pokemon-container" id="pokemon-container"></div>
 </div>
@@ -83,7 +112,7 @@ const typeColors={ normal:"#A8A77A", fire:"#EE8130", water:"#6390F0", electric:"
   steel:"#B7B7CE", fairy:"#D685AD" };
 
 let currentView='pokedex'; 
-const totalPokemons=386; // gerações 1 a 3
+const totalPokemons=386; 
 const allPokemons=[];
 let selectedPokemon=null;
 
@@ -98,10 +127,13 @@ function createPokemonCard(pokemon, showDetails=true, onSelect=null){
   card.classList.add('pokemon-card');
   card.style.backgroundColor=typeColors[primaryType]||"#777";
 
-  const number=document.createElement('div');
-  number.classList.add('pokemon-number');
-  number.textContent=`#${pokemon.id.toString().padStart(3,'0')}`;
-  card.appendChild(number);
+  const infoDiv=document.createElement('div');
+  infoDiv.classList.add('pokemon-info');
+
+  const name=document.createElement('div');
+  name.classList.add('pokemon-name');
+  name.textContent=upper(pokemon.name);
+  infoDiv.appendChild(name);
 
   const typesContainer=document.createElement('div');
   typesContainer.classList.add('pokemon-types');
@@ -111,7 +143,9 @@ function createPokemonCard(pokemon, showDetails=true, onSelect=null){
     img.classList.add('pokemon-type-img');
     typesContainer.appendChild(img);
   });
-  card.appendChild(typesContainer);
+  infoDiv.appendChild(typesContainer);
+
+  card.appendChild(infoDiv);
 
   const img=document.createElement('img');
   img.src=pokemon.sprites.other['official-artwork'].front_default;
@@ -119,29 +153,16 @@ function createPokemonCard(pokemon, showDetails=true, onSelect=null){
   img.classList.add('pokemon-img');
   card.appendChild(img);
 
-  const name=document.createElement('div');
-  name.textContent=upper(pokemon.name);
-  card.appendChild(name);
-
   if(showDetails){
-    card.addEventListener('click',async()=>{
-      clearContainer();
-      selectedPokemon=pokemon;
-      showSelectedPokemon();
-    });
+    card.addEventListener('click',()=>{ selectedPokemon=pokemon; clearContainer(); showSelectedPokemon(); });
   } else if(onSelect){
-    card.addEventListener('click',()=>{
-      selectedPokemon=pokemon;
-      myPokemonBtn.style.display='block';
-      startGameBtn.style.display='none';
-      showSelectedPokemon();
-    });
+    card.addEventListener('click',()=>{ selectedPokemon=pokemon; myPokemonBtn.style.display='block'; startGameBtn.style.display='none'; showSelectedPokemon(); });
   }
 
   container.appendChild(card);
 }
 
-// CARREGA TODOS OS POKEMONS DE UMA VEZ
+// CARREGA TODOS OS POKEMONS
 async function loadAllPokemons(){
   for(let i=1;i<=totalPokemons;i++){
     const p=await fetchPokemon(i);
@@ -150,7 +171,7 @@ async function loadAllPokemons(){
   }
 }
 
-// FUNÇÃO PARA MOSTRAR POKEMON SELECIONADO COM IVs
+// MOSTRAR POKEMON SELECIONADO COM IVs
 function showSelectedPokemon(){
   clearContainer();
   const card=document.createElement('div');
@@ -205,13 +226,13 @@ function showSelectedPokemon(){
 
   const stats=['HP','Attack','Defense','Sp. Atk','Sp. Def','Speed'];
   const ivMax=30;
-  const ivs=stats.map(stat=>15); // iniciais
+  const ivs=stats.map(stat=>15); 
   const totalIV=ivs.reduce((a,b)=>a+b,0);
 
   stats.forEach((stat,index)=>{
     const ivValue=ivs[index];
     const p=document.createElement('p');
-    p.textContent=`${stat}: ${ivValue}`; // só o valor
+    p.textContent=`${stat}: ${ivValue}`;
     ivContainer.appendChild(p);
   });
 
