@@ -10,8 +10,8 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
 /* SIDEBAR */
 .sidebar {
   width:200px;
-  background:#3498db;
-  color:#fff;
+  background:#fff;
+  color:#000;
   height:100vh;
   position:fixed;
   left:0;
@@ -23,12 +23,12 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
   transform:translateX(-100%);
   transition: transform 0.3s ease;
   border-radius:0 10px 10px 0;
-  box-shadow:2px 0 10px rgba(0,0,0,0.2);
+  border:2px solid #000;
 }
 .sidebar.active { transform:translateX(0); }
 .sidebar h2 { margin-top:0; font-size:18px; }
-.sidebar button { margin:5px 0; padding:8px 10px; width:100%; border:none; border-radius:10px; cursor:pointer; background:#2980b9; color:#fff; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); }
-.sidebar button:hover { background:#1f618d; }
+.sidebar button { margin:5px 0; padding:8px 10px; width:100%; border:none; border-radius:10px; cursor:pointer; background:#fff; color:#000; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2); border:2px solid #000; }
+.sidebar button:hover { background:#f0f0f0; }
 
 /* MENU MOBILE BUTTON */
 .menu-btn {
@@ -38,12 +38,12 @@ body { margin:0; font-family:Arial,sans-serif; background-color:#fff; display:fl
   left:10px;
   z-index:1100;
   font-size:20px;
-  background:#3498db;
-  border:none;
+  background:#fff;
+  border:2px solid #000;
   border-radius:10px;
   padding:5px 10px;
   cursor:pointer;
-  color:#fff;
+  color:#000;
   font-weight:bold;
   box-shadow:0 2px 5px rgba(0,0,0,0.2);
 }
@@ -105,6 +105,7 @@ header #page-title { margin-left:10px; } /* desloca título para direita do bot�
 .pokemon-name { margin:0; font-size:16px; text-align:left; }
 .pokemon-types { display:flex; gap:5px; margin-top:5px; }
 .pokemon-type-img { width:15px; height:15px; }
+.pokemon-number { font-size:14px; color:#fff; font-weight:bold; }
 
 /* CORES SUAVES NATURAIS */
 .type-colors {
@@ -135,7 +136,7 @@ header #page-title { margin-left:10px; } /* desloca título para direita do bot�
 
 <div class="content">
   <header>
-    <button class="menu-btn" style="visibility:hidden;"></button> <!-- placeholder para alinhar título -->
+    <button class="menu-btn" style="visibility:hidden;"></button>
     <span id="page-title">PokéDex</span>
   </header>
   <div class="search-container" id="search-container">
@@ -170,11 +171,9 @@ function upper(str){ return str.toUpperCase(); }
 async function fetchPokemon(id){ const res=await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`); return await res.json(); }
 function clearContainer(){ container.innerHTML=''; }
 
-// Sidebar toggle mobile
 menuBtn.addEventListener('click',()=>{ sidebar.classList.toggle('active'); });
 
-// Create card
-function createPokemonCard(pokemon, showDetails=true, onSelect=null){
+function createPokemonCard(pokemon){
   const card=document.createElement('div');
   const primaryType=pokemon.types[0].type.name;
   card.classList.add('pokemon-card');
@@ -182,6 +181,11 @@ function createPokemonCard(pokemon, showDetails=true, onSelect=null){
 
   const infoDiv=document.createElement('div');
   infoDiv.classList.add('pokemon-info');
+
+  const number=document.createElement('div');
+  number.classList.add('pokemon-number');
+  number.textContent=`#${pokemon.id.toString().padStart(3,'0')}`;
+  infoDiv.appendChild(number);
 
   const name=document.createElement('div');
   name.classList.add('pokemon-name');
@@ -206,66 +210,29 @@ function createPokemonCard(pokemon, showDetails=true, onSelect=null){
   img.classList.add('pokemon-img');
   card.appendChild(img);
 
-  // Clique baseado na view atual
   card.addEventListener('click',()=>{
     selectedPokemon=pokemon;
+    currentView='game';
+    pageTitle.textContent="Pokémons";
     clearContainer();
-    if(currentView==='pokedex'){ showSelectedPokemonDetails(); pageTitle.textContent="PokéDex"; }
-    else if(currentView==='game'){ showSelectedPokemonIVs(); pageTitle.textContent="Pokémons"; }
+    showSelectedPokemonIVs();
+    pokedexBtn.style.display='block';
+    startGameBtn.style.display='none';
+    myPokemonBtn.style.display='block';
+    searchContainer.style.display='none';
   });
 
   container.appendChild(card);
 }
 
-// Load all pokemons
 async function loadAllPokemons(){
   for(let i=1;i<=totalPokemons;i++){
     const p=await fetchPokemon(i);
     allPokemons.push(p);
-    if(currentView==='pokedex') createPokemonCard(p,true);
+    if(currentView==='pokedex') createPokemonCard(p);
   }
 }
 
-// Mostrar detalhes normais (Pokédex)
-function showSelectedPokemonDetails(){
-  clearContainer();
-  const card=document.createElement('div');
-  const primaryType=selectedPokemon.types[0].type.name;
-  card.classList.add('pokemon-card');
-  card.style.backgroundColor=typeColors[primaryType];
-  card.style.flexDirection='column';
-  card.style.height='auto';
-  card.style.padding='10px';
-  card.style.cursor='default';
-
-  const name=document.createElement('div');
-  name.textContent=upper(selectedPokemon.name);
-  name.style.margin='5px 0';
-  name.style.fontSize='16px';
-  card.appendChild(name);
-
-  const typesContainer=document.createElement('div');
-  typesContainer.style.display='flex';
-  typesContainer.style.gap='5px';
-  selectedPokemon.types.forEach(t=>{
-    const imgType=document.createElement('img');
-    imgType.src=`https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/${t.type.name}.svg`;
-    imgType.style.width='20px';
-    imgType.style.height='20px';
-    typesContainer.appendChild(imgType);
-  });
-  card.appendChild(typesContainer);
-
-  const img=document.createElement('img');
-  img.src=selectedPokemon.sprites.other['official-artwork'].front_default;
-  img.alt=selectedPokemon.name;
-  img.classList.add('pokemon-img');
-  card.appendChild(img);
-
-  container.appendChild(card);
-}
-
-// Mostrar IVs (Pokémons)
 function showSelectedPokemonIVs(){
   clearContainer();
   const card=document.createElement('div');
@@ -334,15 +301,14 @@ function showSelectedPokemonIVs(){
   container.appendChild(card);
 }
 
-// Search
 searchInput.addEventListener('input',()=>{
   const value=searchInput.value.toLowerCase();
-  clearContainer();
-  allPokemons.filter(p=>p.name.includes(value)).forEach(p=>createPokemonCard(p,true));
+  container.innerHTML='';
+  allPokemons.filter(p=>p.name.includes(value)).forEach(p=>createPokemonCard(p));
 });
 
 // Start Game
-startGameBtn.addEventListener('click',async()=>{
+startGameBtn.addEventListener('click',()=>{
   currentView='game';
   pageTitle.textContent="Pokémons";
   pokedexBtn.style.display='block';
@@ -351,17 +317,11 @@ startGameBtn.addEventListener('click',async()=>{
   searchContainer.style.display='none';
   clearContainer();
 
-  const startersIds=[1,4,7,152,155,158,252,255,258]; 
-  for(const id of startersIds){
+  const startersIds=[1,4,7,152,155,158,252,255,258]; // 9 iniciais
+  startersIds.forEach(id=>{
     const p=allPokemons.find(x=>x.id===id);
-    createPokemonCard(p,false,(pokemon)=>{
-      selectedPokemon=p; 
-      myPokemonBtn.style.display='block'; 
-      startGameBtn.style.display='none'; 
-      showSelectedPokemonIVs();
-      pageTitle.textContent="Pokémons";
-    });
-  }
+    createPokemonCard(p);
+  });
 });
 
 // Pokedex button
@@ -372,8 +332,8 @@ pokedexBtn.addEventListener('click',()=>{
   myPokemonBtn.style.display='block';
   startGameBtn.style.display='none';
   searchContainer.style.display='flex';
-  clearContainer();
-  allPokemons.forEach(p=>createPokemonCard(p,true));
+  container.innerHTML='';
+  allPokemons.forEach(p=>createPokemonCard(p));
 });
 
 // My Pokemon button
@@ -388,7 +348,6 @@ myPokemonBtn.addEventListener('click',()=>{
   }
 });
 
-// Inicializa
 loadAllPokemons();
 </script>
 </body>
