@@ -1,126 +1,105 @@
-:root{
-  /* Apenas a FLOR é vermelha */
-  --petal-light:#ff0000;     /* vermelho claro */
-  --petal-dark:#b30000;      /* vermelho escuro */
-  --petal-glow:#ff0000;      /* brilho vermelho */
-
-  /* Folhas (mantidas verdes) */
-  --leaf-light:#4caf50;
-  --leaf-dark:#2e7d32;
-
-  /* Pólen (amarelo natural) */
-  --pollen:#ffd700;
-
-  /* Fundo */
-  --dark:#000;
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ========================= */
-/*   FLORES (pétalas)        */
-/* ========================= */
-
-.flower__leaf{
-  position:absolute;
-  width:5vmin;
-  height:16vmin;
-  bottom:0;
-  left:50%;
-  border-radius:50%;
-  transform-origin:bottom center;
-  background:linear-gradient(to top,var(--petal-dark),var(--petal-light));
-  box-shadow:inset 0 0 1.5vmin rgba(255,0,0,.35);
-  animation:petalMove 4s ease-in-out infinite;
+body.not-loaded * {
+  animation-play-state: paused !important;
 }
 
-/* Pétalas separadas em 3 direções */
-.flower__leaf--1{
-  --angle:0deg;
-  transform:translateX(-50%) rotate(var(--angle));
-}
-.flower__leaf--2{
-  --angle:120deg;
-  transform:translateX(-50%) rotate(var(--angle));
-}
-.flower__leaf--3{
-  --angle:240deg;
-  transform:translateX(-50%) rotate(var(--angle));
+body {
+  background: #1a0000; /* fundo escuro avermelhado */
+  overflow: hidden;
 }
 
-/* brilho da flor no centro */
-.flower__leafs::after{
-  content:"";
-  position:absolute;
-  width:6vmin;
-  height:6vmin;
-  border-radius:50%;
-  background:var(--petal-glow);
-  filter:blur(4vmin);
-  opacity:.9;
-  top:3vmin;
-  left:50%;
-  transform:translateX(-50%);
+/* NOITE / CÉU */
+.night {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 100%, #4d0000 0%, #1a0000 70%);
+  z-index: -1;
 }
 
-/* animação suave */
-@keyframes petalMove{
-  0%,100%{
-    transform:translateX(-50%) rotate(var(--angle)) scale(1);
+/* FLORES */
+.flowers {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 80%;
+  pointer-events: none;
+}
+
+.flower {
+  position: absolute;
+  bottom: 0;
+  transform-origin: bottom center;
+}
+
+.flower--1 { left: 20%; animation: sway 4s ease-in-out infinite; }
+.flower--2 { left: 40%; animation: sway 3.5s ease-in-out infinite; }
+.flower--3 { left: 60%; animation: sway 4.3s ease-in-out infinite; }
+
+/* CABO (STEM) */
+.flower__stem {
+  width: 6px;
+  height: 200px;
+  background: #660000; /* vermelho escuro */
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+/* PÉTALAS */
+.flower__leafs {
+  position: relative;
+  top: -30px;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto;
+}
+
+.flower__leaf {
+  width: 40px;
+  height: 40px;
+  background: #cc0000; /* pétala vermelha */
+  border-radius: 50%;
+  position: absolute;
+  box-shadow: 0 0 10px #ff3333;
+}
+
+/* Pétalas posicionadas em cruz */
+.flower__leaf:nth-child(1) { top: 0; left: 10px; }
+.flower__leaf:nth-child(2) { top: 10px; left: -10px; }
+.flower__leaf:nth-child(3) { top: 10px; left: 30px; }
+.flower__leaf:nth-child(4) { top: 25px; left: 10px; }
+
+/* MIÚDO (centro) */
+.flower__center {
+  width: 25px;
+  height: 25px;
+  background: #ff4444;
+  border-radius: 50%;
+  margin: 0 auto;
+  position: relative;
+  top: 10px;
+  box-shadow: 0 0 20px #ff0000;
+}
+
+/* GRAMA */
+.ground {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 120px;
+  background: linear-gradient(#330000, #1a0000);
+  z-index: -1;
+}
+
+/* Animação de balanço */
+@keyframes sway {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(3deg); }
+  100% { transform: rotate(0deg); }
   }
-  50%{
-    transform:translateX(-50%) rotate(calc(var(--angle) + 2deg)) scale(1.03);
-  }
-}
-
-/* ========================= */
-/*   PÓLEN                    */
-/* ========================= */
-
-.flower__core{
-  position:absolute;
-  width:4vmin;
-  height:4vmin;
-  background:var(--pollen);
-  border-radius:50%;
-  top:3.5vmin;
-  left:50%;
-  transform:translateX(-50%);
-  box-shadow:0 0 1vmin rgba(255,215,0,.7);
-}
-
-/* ========================= */
-/*   FOLHAS (verdes)          */
-/* ========================= */
-
-.leaf{
-  position:absolute;
-  width:12vmin;
-  height:6vmin;
-  background:linear-gradient(to right,var(--leaf-dark),var(--leaf-light));
-  border-radius:0 50% 50% 0;
-  left:50%;
-  transform-origin:left center;
-}
-
-.leaf--1{
-  top:20vmin;
-  transform:translateX(-50%) rotate(-40deg);
-}
-
-.leaf--2{
-  top:24vmin;
-  transform:translateX(-50%) rotate(20deg);
-}
-
-/* ========================= */
-/*   CAULE (verde)            */
-/* ========================= */
-
-.stem{
-  position:absolute;
-  width:1.5vmin;
-  height:35vmin;
-  background:var(--leaf-dark); /* VERDE correto */
-  left:50%;
-  bottom:0;
-  transform:translateX(-50%);
-                                                           }
