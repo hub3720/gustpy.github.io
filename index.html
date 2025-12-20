@@ -1,258 +1,155 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gustavo | gust.py — Senior Full-Stack Developer</title>
-  <meta name="description" content="Senior Full-Stack Developer | Bots, IA & Web | São Paulo"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0f0f0f;
-      --text: #e0e0e0;
-      --accent: #ffffff;
-      --card: #1a1a1a;
-      --border: #333;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      line-height: 1.7;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: row;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: 300px;
-      height: 100vh;
-      position: fixed;
-      background: var(--bg);
-      padding: 60px 40px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      border-right: 1px solid var(--border);
-    }
-    .sidebar h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 2.8rem;
-      color: var(--accent);
-      margin-bottom: 8px;
-      font-weight: 700;
-    }
-    .sidebar h2 {
-      font-size: 1.1rem;
-      color: #aaa;
-      margin-bottom: 30px;
-      font-weight: 500;
-    }
-    .sidebar p {
-      font-size: 0.95rem;
-      color: #888;
-      margin: 8px 0;
-    }
-    .sidebar .links a {
-      display: block;
-      color: var(--text);
-      text-decoration: none;
-      margin: 20px 0;
-      font-weight: 500;
-      transition: 0.3s;
-    }
-    .sidebar .links a:hover {
-      color: var(--accent);
-      transform: translateX(8px);
-    }
-
-    /* Main content */
-    .main {
-      margin-left: 300px;
-      padding: 80px 60px;
-      max-width: 900px;
-      flex: 1;
-    }
-    .main h3 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 2rem;
-      color: var(--accent);
-      margin-bottom: 30px;
-      font-weight: 600;
-      border-left: 4px solid var(--accent);
-      padding-left: 15px;
-    }
-    .main p {
-      font-size: 1.05rem;
-      margin-bottom: 20px;
-      color: #ccc;
-    }
-
-    /* Projetos */
-    .projects {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 40px;
-    }
-    .project {
-      background: var(--card);
-      padding: 40px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      transition: 0.3s;
-    }
-    .project:hover {
-      border-color: var(--accent);
-      transform: translateY(-4px);
-    }
-    .project h4 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.5rem;
-      color: var(--accent);
-      margin-bottom: 15px;
-      font-weight: 600;
-    }
-    .project p {
-      font-size: 1rem;
-      color: #bbb;
-      margin: 10px 0;
-    }
-    .project strong {
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    /* Skills */
-    .skills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 20px;
-    }
-    .skill {
-      background: var(--card);
-      color: var(--text);
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      border: 1px solid var(--border);
-      transition: 0.3s;
-    }
-    .skill:hover {
-      background: var(--accent);
-      color: #000;
-      border-color: var(--accent);
-    }
-
-    /* Contato */
-    .contact p {
-      font-size: 1.1rem;
-      margin: 15px 0;
-    }
-    .contact a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .contact a:hover {
-      text-decoration: underline;
-    }
-
-    /* Responsivo */
-    @media (max-width: 768px) {
-      body { flex-direction: column; }
-      .sidebar {
-        width: 100%;
-        height: auto;
-        position: static;
-        padding: 50px 30px;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-      }
-      .main { margin-left: 0; padding: 40px 30px; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="imagens/favicon.ico" type="image/x-icon">
+    <title>Como surgiu o mascote do Android</title>
+    <link rel="stylesheet" href="style2.css">
 </head>
 <body>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h1>gust.py</h1>
-    <h2>Senior Full-Stack Developer</h2>
-    <p>São Paulo, SP</p>
-    <p>Inglês Fluente</p>
-    <div class="links">
-      <a href="https://github.com/hub3720" target="_blank">GitHub</a>
-      <a href="mailto:gustavoffj8@gmail.com">Email</a>
-    </div>
-  </div>
+<header class="topo">
+    <h1>Curiosidades de tecnologia</h1>
+    <p class="titulo">
+        Tudo aquilo que você sempre quis saber sobre o mundo <br>
+        Tech, em um único lugar.
+    </p>
 
-  <!-- Main -->
-  <div class="main">
+    <nav>
+        <a class="link" href="#">Home</a>
+        <a class="link" href="#">Notícias</a>
+        <a class="link" href="#">Curiosidades</a>
+        <a class="link" href="#">Fale conosco</a>
+    </nav>
+</header>
 
-    <section>
-      <h3>Sobre mim</h3>
-      <p>Senior full-stack com mais de 3 anos de experiência, especializado em bots avançados, integrações com inteligência artificial e aplicações web de alta performance.</p>
-      <p>Domino Python, JavaScript/TypeScript, React, FastAPI, Node.js, Three.js e diversas outras tecnologias. Desenvolvi sistemas MMO complexos, simuladores espaciais e ferramentas de IA que destacam precisão e escala.</p>
-      <p>Foco em entrega rápida, código limpo e soluções robustas que funcionam perfeitamente.</p>
-    </section>
+<main>
+    <h2>História do Mascote do Android</h2>
 
-    <section class="projects">
-      <h3>Projetos Destacados</h3>
+    <p>
+        Provavelmente você sabe que o sistema operacional Android,
+        mantido pelo Google, é um dos mais utilizados para dispositivos
+        móveis em todo o mundo. Mas talvez você não saiba que o seu
+        simpático mascote tem um nome e uma história muito curiosa.
+    </p>
 
-      <div class="project">
-        <h4>Bot Pokémon MMO Super Avançado</h4>
-        <p>Sistema completo de MMO: mapa dinâmico, batalhas em tempo real, níveis, economia, NPCs e persistência de dados.</p>
-        <p><strong>Tecnologias:</strong> Python, FastAPI, WebSocket, PostgreSQL, JavaScript</p>
-        <p><strong>Meu papel:</strong> Desenvolvimento completo (único dev)</p>
-        <p><strong>+6.000 linhas</strong> | Funcionando perfeitamente</p>
-      </div>
+    <h3>A primeira versão</h3>
 
-      <div class="project">
-        <h4>Pokedex Inteligente com IA (Groq 120b)</h4>
-        <p>Pokedex moderna com busca inteligente, análise via IA, sugestões de times e integração com API oficial.</p>
-        <p><strong>Tecnologias:</strong> React, Python, Groq API, Tailwind</p>
-        <p><strong>Meu papel:</strong> Desenvolvimento completo</p>
-        <p><strong>+3.000 linhas</strong> | Integração fluida com IA de ponta</p>
-      </div>
+    <p>
+        A primeira tentativa de criar um mascote surgiu em 2007 e veio
+        de um desenvolvedor chamado
+        <a href="https://androidcommunity.com/dan-morrill-shows-us-the-android-mascot-that-almost-was-20130103/"
+           target="_blank" rel="external">
+            Dan Morrill &#128279;
+        </a>.
+        Ele utilizou o
+        <a href="https://inkscape.org" target="_blank" rel="external">
+            Inkscape &#128279;
+        </a>
+        para criar sua própria versão de robô.
+    </p>
 
-      <div class="project">
-        <h4>Space Engine Fan-Made</h4>
-        <p>Simulador espacial procedural com geração de planetas, sistemas solares e visualização 3D realista.</p>
-        <p><strong>Tecnologias:</strong> Python, Three.js, WebGL, NumPy</p>
-        <p><strong>Meu papel:</strong> Desenvolvimento completo</p>
-        <p><strong>+4.000 linhas</strong> | Alta performance</p>
-      </div>
-    </section>
+    <picture>
+        <source media="(max-width: 600px)" srcset="imagens/dan-droids-pq.png">
+        <img src="imagens/dan-droids.png" alt="Primeiros mascotes Android">
+    </picture>
 
-    <section>
-      <h3>Skills</h3>
-      <div class="skills">
-        <span class="skill">Python (Expert)</span>
-        <span class="skill">JavaScript / TypeScript</span>
-        <span class="skill">React / Next.js</span>
-        <span class="skill">FastAPI / Flask</span>
-        <span class="skill">Inteligência Artificial</span>
-        <span class="skill">Bots & Automação</span>
-        <span class="skill">Three.js / WebGL</span>
-        <span class="skill">WebSocket & APIs</span>
-        <span class="skill">UI/UX Design</span>
-        <span class="skill">Inglês Fluente</span>
-      </div>
-    </section>
+    <p>
+        Essa primeira versão ficou conhecida como
+        <a href="https://androidcommunity.com/dan-morrill-shows-us-the-android-mascot-that-almost-was-20130103/"
+           target="_blank" rel="external">
+            Dandroids &#128279;
+        </a>.
+    </p>
 
-    <section class="contact">
-      <h3>Contato</h3>
-      <p>Email: <a href="mailto:gustavoffj8@gmail.com">gustavoffj8@gmail.com</a></p>
-      <p>GitHub: <a href="https://github.com/hub3720" target="_blank">github.com/hub3720</a></p>
-      <p>Disponível para projetos freelance e colaborações internacionais.</p>
-    </section>
+    <h3>Surge um novo mascote</h3>
 
-  </div>
+    <p>
+        A missão passou para a ilustradora russa Irina Blok,
+        funcionária do Google, que criou um design simples,
+        limpo e de fácil identificação.
+    </p>
+
+    <picture>
+        <source media="(max-width: 600px)" srcset="imagens/irina-blok-pq.jpg">
+        <img src="imagens/irina-blok.jpg" alt="Irina Blok">
+    </picture>
+
+    <p>
+        Assim nasceu o Bugdroid, o mascote oficial do Android.
+    </p>
+
+    <img src="imagens/bugdroid.png" alt="Mascote Bugdroid">
+
+    <p>
+        A inspiração veio dos símbolos de banheiro:
+        simples, objetivos e universais.
+    </p>
+</main>
+
+<section class="video">
+    <iframe
+        width="560"
+        height="315"
+        src="https://www.youtube-nocookie.com/embed/l2UDgpLz20M"
+        title="Vídeo sobre o mascote do Android"
+        frameborder="0"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen>
+    </iframe>
+</section>
+
+<main>
+    <h3>Quer aprender mais?</h3>
+
+    <aside>
+        <p>
+            As versões do Android foram nomeadas com doces,
+            seguindo a ordem alfabética.
+        </p>
+
+        <ul>
+            <li>1.5 – Cupcake</li>
+            <li>1.6 – Donut</li>
+            <li>2.0 – Eclair</li>
+            <li>2.2 – Froyo</li>
+            <li>2.3 – Gingerbread</li>
+            <li>3.0 – Honeycomb</li>
+            <li>4.0 – Ice Cream Sandwich</li>
+            <li>4.1 – Jelly Bean</li>
+            <li>4.4 – KitKat</li>
+            <li>5.0 – Lollipop</li>
+            <li>6.0 – Marshmallow</li>
+            <li>7.0 – Nougat</li>
+            <li>8.0 – Oreo</li>
+            <li>9.0 – Pie</li>
+        </ul>
+
+        <p>
+            A partir do Android 10, o Google passou a usar apenas números.
+        </p>
+
+        <p>
+            Saiba mais em
+            <a href="https://www.android.com/intl/pt_br/what-is-android/"
+               target="_blank">
+                Android History &#128279;
+            </a>.
+        </p>
+    </aside>
+
+    <p>
+        Esperamos que você tenha gostado dessa curiosidade
+        sobre o sistema Android e seu mascote.
+    </p>
+</main>
+
+<footer>
+    <p id="final">
+        Site recriado por Hector Barbosa, aluno do Curso em Vídeo
+    </p>
+</footer>
 
 </body>
-                                                                   </html>
+  </html>
