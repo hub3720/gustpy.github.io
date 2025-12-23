@@ -3,153 +3,337 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="imagens/favicon.ico" type="image/x-icon">
-    <title>Como surgiu o mascote do Android</title>
-    <link rel="stylesheet" href="style2.css">
+    <title>Simulador de Foguete 3D - Three.js</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; background-color: #000; }
+        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #0f0;
+            background: rgba(0, 20, 0, 0.7);
+            padding: 15px;
+            border: 1px solid #0f0;
+            border-radius: 5px;
+            pointer-events: none; /* Deixa o mouse passar para o 3D */
+            user-select: none;
+        }
+
+        #ui-layer h1 { margin: 0 0 10px 0; font-size: 18px; text-transform: uppercase; }
+        .stat { font-size: 14px; margin-bottom: 5px; }
+        .value { font-weight: bold; color: #fff; }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 10px black;
+            pointer-events: none;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        #fuel-bar-container {
+            width: 100%;
+            height: 10px;
+            background: #333;
+            margin-top: 5px;
+        }
+        #fuel-bar {
+            width: 100%;
+            height: 100%;
+            background: #0f0;
+            transition: width 0.1s;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
 
-<header class="topo">
-    <h1>Curiosidades de tecnologia</h1>
-    <p class="titulo">
-        Tudo aquilo que você sempre quis saber sobre o mundo <br>
-        Tech, em um único lugar.
-    </p>
+    <div id="ui-layer">
+        <h1>Telemetria</h1>
+        <div class="stat">Altitude: <span id="alt-val" class="value">0</span> m</div>
+        <div class="stat">Velocidade: <span id="vel-val" class="value">0</span> km/h</div>
+        <div class="stat">Atmosfera: <span id="atm-val" class="value">100</span>%</div>
+        <div class="stat">Combustível:</div>
+        <div id="fuel-bar-container"><div id="fuel-bar"></div></div>
+    </div>
 
-    <nav>
-        <a class="link" href="#">Home</a>
-        <a class="link" href="#">Notícias</a>
-        <a class="link" href="#">Curiosidades</a>
-        <a class="link" href="#">Fale conosco</a>
-    </nav>
-</header>
+    <div id="controls-hint">SEGURE [ESPAÇO] PARA LIGAR O MOTOR</div>
+    <div id="canvas-container"></div>
 
-<main>
-    <h2>História do Mascote do Android</h2>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    <p>
-        Provavelmente você sabe que o sistema operacional Android,
-        mantido pelo Google, é um dos mais utilizados para dispositivos
-        móveis em todo o mundo. Mas talvez você não saiba que o seu
-        simpático mascote tem um nome e uma história muito curiosa.
-    </p>
+        // --- Configuração da Cena ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Começa azul céu
+        scene.fog = new THREE.Fog(0x87CEEB, 20, 500);
 
-    <h3>A primeira versão</h3>
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 50000);
+        camera.position.set(0, 10, 40);
 
-    <p>
-        A primeira tentativa de criar um mascote surgiu em 2007 e veio
-        de um desenvolvedor chamado
-        <a href="https://androidcommunity.com/dan-morrill-shows-us-the-android-mascot-that-almost-was-20130103/"
-           target="_blank" rel="external">
-            Dan Morrill &#128279;
-        </a>.
-        Ele utilizou o
-        <a href="https://inkscape.org" target="_blank" rel="external">
-            Inkscape &#128279;
-        </a>
-        para criar sua própria versão de robô.
-    </p>
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    <picture>
-        <source media="(max-width: 600px)" srcset="imagens/dan-droids-pq.png">
-        <img src="imagens/dan-droids.png" alt="Primeiros mascotes Android">
-    </picture>
+        // --- Luzes ---
+        const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Luz ambiente suave
+        scene.add(ambientLight);
 
-    <p>
-        Essa primeira versão ficou conhecida como
-        <a href="https://androidcommunity.com/dan-morrill-shows-us-the-android-mascot-that-almost-was-20130103/"
-           target="_blank" rel="external">
-            Dandroids &#128279;
-        </a>.
-    </p>
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2);
+        sunLight.position.set(100, 500, 100);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        scene.add(sunLight);
 
-    <h3>Surge um novo mascote</h3>
+        // --- Objetos: Terra e Plataforma ---
+        // Usamos uma esfera muito grande para simular a curvatura do planeta
+        const earthRadius = 2000;
+        const earthGeometry = new THREE.SphereGeometry(earthRadius, 128, 128);
+        const earthMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x228B22, 
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        earth.rotation.x = -Math.PI / 2;
+        earth.position.y = -earthRadius; // Topo da esfera no y=0
+        earth.receiveShadow = true;
+        scene.add(earth);
 
-    <p>
-        A missão passou para a ilustradora russa Irina Blok,
-        funcionária do Google, que criou um design simples,
-        limpo e de fácil identificação.
-    </p>
+        // Grid na base para referência
+        const gridHelper = new THREE.PolarGridHelper(50, 10);
+        gridHelper.position.y = 0.1;
+        scene.add(gridHelper);
 
-    <picture>
-        <source media="(max-width: 600px)" srcset="imagens/irina-blok-pq.jpg">
-        <img src="imagens/irina-blok.jpg" alt="Irina Blok">
-    </picture>
+        // --- Objetos: Foguete ---
+        const rocketGroup = new THREE.Group();
+        
+        // Corpo do foguete
+        const bodyGeo = new THREE.CylinderGeometry(1, 1, 8, 32);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 4;
+        body.castShadow = true;
+        rocketGroup.add(body);
 
-    <p>
-        Assim nasceu o Bugdroid, o mascote oficial do Android.
-    </p>
+        // Ponta
+        const noseGeo = new THREE.ConeGeometry(1, 3, 32);
+        const noseMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+        const nose = new THREE.Mesh(noseGeo, noseMat);
+        nose.position.y = 9.5;
+        nose.castShadow = true;
+        rocketGroup.add(nose);
 
-    <img src="imagens/bugdroid.png" alt="Mascote Bugdroid">
+        // Aletas (Fins)
+        const finGeo = new THREE.BoxGeometry(0.2, 2, 1.5);
+        const finMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        for(let i=0; i<4; i++) {
+            const fin = new THREE.Mesh(finGeo, finMat);
+            fin.position.y = 1;
+            fin.rotation.y = (Math.PI / 2) * i;
+            fin.translateZ(1.2);
+            fin.castShadow = true;
+            rocketGroup.add(fin);
+        }
 
-    <p>
-        A inspiração veio dos símbolos de banheiro:
-        simples, objetivos e universais.
-    </p>
-</main>
+        // Fogo do Motor (Visual)
+        const flameGeo = new THREE.ConeGeometry(0.8, 4, 16);
+        flameGeo.translate(0, -2, 0); // Pivô no topo
+        const flameMat = new THREE.MeshBasicMaterial({ 
+            color: 0xffaa00, 
+            transparent: true, 
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending 
+        });
+        const flame = new THREE.Mesh(flameGeo, flameMat);
+        flame.position.y = 0;
+        flame.visible = false; // Começa desligado
+        rocketGroup.add(flame);
 
-<section class="video">
-    <iframe
-        width="560"
-        height="315"
-        src="https://www.youtube-nocookie.com/embed/l2UDgpLz20M"
-        title="Vídeo sobre o mascote do Android"
-        frameborder="0"
-        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen>
-    </iframe>
-</section>
+        // Luz do motor
+        const engineLight = new THREE.PointLight(0xffaa00, 0, 20);
+        engineLight.position.y = -2;
+        rocketGroup.add(engineLight);
 
-<main>
-    <h3>Quer aprender mais?</h3>
+        scene.add(rocketGroup);
 
-    <aside>
-        <p>
-            As versões do Android foram nomeadas com doces,
-            seguindo a ordem alfabética.
-        </p>
+        // --- Objetos: Estrelas (Espaço) ---
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 5000;
+        const posArray = new Float32Array(starsCount * 3);
+        
+        for(let i = 0; i < starsCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 4000; // Espalhadas longe
+        }
+        
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMaterial = new THREE.PointsMaterial({ size: 1.5, color: 0xffffff, transparent: true, opacity: 0 });
+        const starField = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(starField);
 
-        <ul>
-            <li>1.5 – Cupcake</li>
-            <li>1.6 – Donut</li>
-            <li>2.0 – Eclair</li>
-            <li>2.2 – Froyo</li>
-            <li>2.3 – Gingerbread</li>
-            <li>3.0 – Honeycomb</li>
-            <li>4.0 – Ice Cream Sandwich</li>
-            <li>4.1 – Jelly Bean</li>
-            <li>4.4 – KitKat</li>
-            <li>5.0 – Lollipop</li>
-            <li>6.0 – Marshmallow</li>
-            <li>7.0 – Nougat</li>
-            <li>8.0 – Oreo</li>
-            <li>9.0 – Pie</li>
-        </ul>
+        // --- Controles de Câmera ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enablePan = false;
+        controls.minDistance = 10;
+        controls.maxDistance = 100;
+        controls.target.set(0, 5, 0);
 
-        <p>
-            A partir do Android 10, o Google passou a usar apenas números.
-        </p>
+        // --- Física e Estado do Jogo ---
+        const physics = {
+            velocity: 0,
+            altitude: 0,
+            acceleration: 0,
+            fuel: 100,
+            isEngineOn: false,
+            gravity: 9.81,
+            thrustPower: 25, // Força do motor
+            dragCoeff: 0.05 // Resistência do ar
+        };
 
-        <p>
-            Saiba mais em
-            <a href="https://www.android.com/intl/pt_br/what-is-android/"
-               target="_blank">
-                Android History &#128279;
-            </a>.
-        </p>
-    </aside>
+        // Inputs
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') physics.isEngineOn = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') physics.isEngineOn = false;
+        });
+        window.addEventListener('mousedown', () => physics.isEngineOn = true);
+        window.addEventListener('mouseup', () => physics.isEngineOn = false);
+        window.addEventListener('touchstart', (e) => { e.preventDefault(); physics.isEngineOn = true; }, {passive: false});
+        window.addEventListener('touchend', () => physics.isEngineOn = false);
 
-    <p>
-        Esperamos que você tenha gostado dessa curiosidade
-        sobre o sistema Android e seu mascote.
-    </p>
-</main>
 
-<footer>
-    <p id="final">
-        Site recriado por Hector Barbosa, aluno do Curso em Vídeo
-    </p>
-</footer>
+        // --- Loop de Animação ---
+        const clock = new THREE.Clock();
+        const uiAlt = document.getElementById('alt-val');
+        const uiVel = document.getElementById('vel-val');
+        const uiAtm = document.getElementById('atm-val');
+        const uiFuel = document.getElementById('fuel-bar');
 
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const dt = Math.min(clock.getDelta(), 0.1); // Delta time (max 0.1s para evitar bugs de física se travar)
+
+            // 1. Atualizar Estado do Motor
+            if (physics.isEngineOn && physics.fuel > 0) {
+                physics.fuel -= 10 * dt; // Consumo de combustível
+                flame.visible = true;
+                
+                // Efeito de flicker no fogo
+                flame.scale.set(1, 1 + Math.random() * 0.5, 1);
+                engineLight.intensity = 2;
+            } else {
+                flame.visible = false;
+                engineLight.intensity = 0;
+            }
+
+            // 2. Calcular Física
+            // Densidade do ar diminui com a altura (simulação exponencial simples)
+            // Altura de referência da atmosfera visual ~ 1000 unidades
+            const airDensity = Math.exp(-rocketGroup.position.y / 600); 
+            
+            let thrust = (physics.isEngineOn && physics.fuel > 0) ? physics.thrustPower : 0;
+            
+            // Força de arrasto: Fd = 0.5 * density * v^2 * Cd (simplificado)
+            const dragDirection = physics.velocity > 0 ? -1 : 1;
+            const drag = 0.5 * airDensity * (physics.velocity * physics.velocity) * physics.dragCoeff * dragDirection;
+
+            // Gravidade diminui levemente com a altura (muito sutil nessa escala)
+            const gravity = physics.gravity;
+
+            // Aceleração Resultante
+            physics.acceleration = thrust + drag - gravity;
+
+            // Integrar Velocidade e Posição
+            // Se estiver no chão (y=0) e aceleração for negativa, não move
+            if (rocketGroup.position.y <= 0 && physics.acceleration < 0 && physics.velocity <= 0) {
+                physics.velocity = 0;
+                physics.acceleration = 0;
+                rocketGroup.position.y = 0;
+            } else {
+                physics.velocity += physics.acceleration * dt;
+                rocketGroup.position.y += physics.velocity * dt;
+            }
+
+            // Colisão com o chão
+            if (rocketGroup.position.y < 0) {
+                rocketGroup.position.y = 0;
+                physics.velocity = 0;
+            }
+
+            // 3. Efeitos Visuais de Ambiente (Atmosfera vs Espaço)
+            // Interpolação de cor do céu
+            const spaceHeight = 1500;
+            const progress = Math.min(Math.max(rocketGroup.position.y / spaceHeight, 0), 1);
+            
+            const skyBlue = new THREE.Color(0x87CEEB);
+            const spaceBlack = new THREE.Color(0x000000);
+            const currentSkyColor = skyBlue.clone().lerp(spaceBlack, progress);
+            
+            scene.background = currentSkyColor;
+            scene.fog.color = currentSkyColor;
+            
+            // Densidade do fog diminui no espaço
+            scene.fog.near = 20 + (progress * 1000);
+            scene.fog.far = 500 + (progress * 10000);
+
+            // Estrelas aparecem quando escurece
+            starsMaterial.opacity = Math.max(0, (progress - 0.3) * 1.5);
+
+            // 4. Atualizar Câmera e Controles
+            // A câmera segue o foguete, mas mantém a rotação definida pelo usuário
+            controls.target.copy(rocketGroup.position);
+            // Eleva um pouco o target para ver mais o topo
+            controls.target.y += 5;
+            controls.update();
+
+            // Sincronizar posição da câmera relativa ao foguete para dar sensação de acompanhamento suave
+            // (O OrbitControls cuida da maior parte, aqui apenas garantimos que a base segue)
+            
+            // 5. Atualizar UI
+            uiAlt.innerText = rocketGroup.position.y.toFixed(0);
+            uiVel.innerText = (physics.velocity * 3.6).toFixed(0); // m/s para km/h
+            uiAtm.innerText = (airDensity * 100).toFixed(0);
+            uiFuel.style.width = physics.fuel + '%';
+            
+            if (physics.fuel <= 0) uiFuel.style.background = '#f00';
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Iniciar
+        animate();
+    </script>
 </body>
-  </html>
+    </html>
