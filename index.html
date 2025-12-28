@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Flight Simulator - Céu Gradiente</title>
+    <title>Flight Simulator - Céu e Sombras Ajustados</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
         #ui { position: absolute; top: 20px; left: 20px; color: #FFF; pointer-events: none; text-shadow: 2px 2px 4px #000; z-index: 10; }
@@ -41,23 +41,35 @@
 
         // --- CENA E RENDER ---
         const scene = new THREE.Scene();
+        // Neblina para misturar o horizonte
+        scene.fog = new THREE.Fog(0xd1f3ff, 100, 50000); 
+
         const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombras mais suaves
         document.body.appendChild(renderer.domElement);
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 5000000);
         
         // --- LUZES ---
-        const sun = new THREE.DirectionalLight(0xffffff, 1.8);
+        const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+        sun.position.set(100, 500, 100);
         sun.castShadow = true;
-        sun.shadow.camera.left = -2000; sun.shadow.camera.right = 2000;
-        sun.shadow.camera.top = 2000; sun.shadow.camera.bottom = -2000;
+        // Ajuste do frustum da sombra para o avião
+        sun.shadow.camera.left = -50;
+        sun.shadow.camera.right = 50;
+        sun.shadow.camera.top = 50;
+        sun.shadow.camera.bottom = -50;
+        sun.shadow.camera.near = 1;
+        sun.shadow.camera.far = 2000;
         sun.shadow.mapSize.set(2048, 2048);
         scene.add(sun);
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
-        // --- CÉU CIANO/BRANCO (Shader) ---
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambient);
+
+        // --- CÉU GRADIENTE REALISTA ---
         const vertexShader = `
             varying vec3 vWorldPosition;
             void main() {
@@ -69,18 +81,22 @@
         const fragmentShader = `
             uniform vec3 topColor;
             uniform vec3 bottomColor;
+            uniform float offset;
+            uniform float exponent;
             varying vec3 vWorldPosition;
             void main() {
-                float h = normalize( vWorldPosition ).y;
-                gl_FragColor = vec4( mix( bottomColor, topColor, max( h, 0.0 ) ), 1.0 );
+                float h = normalize( vWorldPosition ).y + offset;
+                gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );
             }
         `;
-        const skyGeo = new THREE.SphereGeometry(1000000, 32, 15);
+        const skyGeo = new THREE.SphereGeometry(2000000, 32, 15);
         const skyMat = new THREE.ShaderMaterial({
             vertexShader, fragmentShader,
             uniforms: {
-                topColor: { value: new THREE.Color(0xffffff) }, // Branco
-                bottomColor: { value: new THREE.Color(0x00ffff) } // Ciano
+                topColor: { value: new THREE.Color(0x00d4ff) },    // Ciano vibrante
+                bottomColor: { value: new THREE.Color(0xffffff) }, // Branco
+                offset: { value: 0.05 },
+                exponent: { value: 0.6 }
             },
             side: THREE.BackSide
         });
@@ -91,7 +107,7 @@
         const planetRadius = 637000;
         const planet = new THREE.Mesh(
             new THREE.SphereGeometry(planetRadius, 128, 128), 
-            new THREE.MeshStandardMaterial({ color: 0x228B22 })
+            new THREE.MeshStandardMaterial({ color: 0x337a33 })
         );
         planet.position.y = -planetRadius; 
         planet.receiveShadow = true;
@@ -103,7 +119,7 @@
         planeGroup.add(modelInner);
 
         const cameraAnchor = new THREE.Object3D();
-        cameraAnchor.position.set(0, 10, -35);
+        cameraAnchor.position.set(0, 8, -30);
         planeGroup.add(cameraAnchor);
 
         let speed = 0, engine = false, thr = 0, joy = { x: 0, y: 0 };
@@ -111,7 +127,12 @@
         new GLTFLoader().load('1.glb', (gltf) => {
             gltf.scene.rotation.y = Math.PI;
             gltf.scene.position.y = -0.55; 
-            gltf.scene.traverse(n => { if(n.isMesh) { n.castShadow = true; }});
+            gltf.scene.traverse(n => { 
+                if(n.isMesh) { 
+                    n.castShadow = true; 
+                    n.receiveShadow = true;
+                }
+            });
             modelInner.add(gltf.scene);
         });
 
@@ -140,30 +161,21 @@
         function loop() {
             const dt = clock.getDelta();
             
-            // RAYCASTING PARA ALTITUDE
             const rayOrigin = planeGroup.position.clone().add(new THREE.Vector3(0, 100, 0));
             raycaster.set(rayOrigin, downVec);
             const intersects = raycaster.intersectObject(planet);
 
             let groundDist = 0;
-            let groundNormal = new THREE.Vector3(0, 1, 0);
-
-            if (intersects.length > 0) {
-                groundDist = intersects[0].point.y;
-                groundNormal = intersects[0].face.normal.clone().applyQuaternion(planet.quaternion);
-            }
+            if (intersects.length > 0) groundDist = intersects[0].point.y;
 
             const currentAlt = planeGroup.position.y - groundDist;
             const isGrounded = currentAlt <= 0.6;
 
-            // FÍSICA
             let limit = (currentAlt > 10) ? 316 : 160;
             speed = THREE.MathUtils.lerp(speed, engine ? thr * limit : 0, dt * 0.6);
 
             if (isGrounded) {
                 planeGroup.position.y = groundDist + 0.55;
-                const targetQuaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), groundNormal);
-                planeGroup.quaternion.slerp(targetQuaternion, dt * 2);
                 planeGroup.rotation.y -= joy.x * dt * 0.6;
                 if (speed > 100) planeGroup.rotation.x = THREE.MathUtils.lerp(planeGroup.rotation.x, joy.y * 0.2, dt * 1.5);
                 if (speed > 140 && planeGroup.rotation.x > 0.02) planeGroup.position.y += speed * dt * 0.5;
@@ -178,15 +190,17 @@
 
             planeGroup.translateZ(speed * dt * 0.85);
 
-            // CÂMERA E LUZ SEGUE AVIÃO
+            // CÂMERA
             cameraAnchor.getWorldPosition(tempVec);
-            camera.position.copy(tempVec);
+            camera.position.lerp(tempVec, 0.1); // Suaviza a câmera
             camera.lookAt(planeGroup.position);
 
-            sun.position.set(planeGroup.position.x + 100, planeGroup.position.y + 1000, planeGroup.position.z + 100);
+            // SOL E SOMBRA SEGUE O AVIÃO
+            // A luz fica no alto mas "anda" com o avião para projetar sombra sempre abaixo dele
+            sun.position.set(planeGroup.position.x + 50, planeGroup.position.y + 200, planeGroup.position.z + 50);
             sun.target = planeGroup;
 
-            // O CÉU SEGUE A POSIÇÃO DO AVIÃO (Ilusão de infinitude)
+            // O CÉU SEGUE A POSIÇÃO DO AVIÃO
             sky.position.copy(planeGroup.position);
 
             // UI
@@ -205,4 +219,4 @@
         });
     </script>
 </body>
-</html>
+    </html>
