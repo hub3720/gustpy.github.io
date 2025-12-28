@@ -2,9 +2,9 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Flight Simulator - Mundo Completo</title>
+    <title>Flight Simulator - Global Halo</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
         #ui { position: absolute; top: 20px; left: 20px; color: #FFF; pointer-events: none; text-shadow: 2px 2px 4px #000; z-index: 10; }
         .info { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
         #joy-wrapper { position: absolute; bottom: 30px; left: 30px; width: 140px; height: 140px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid #FFF; touch-action: none; }
@@ -39,113 +39,94 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
-        // --- CENA E RENDER ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
+        scene.background = new THREE.Color(0x000005); // Espaço escuro
+        
         const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 2000000);
-        const sun = new THREE.DirectionalLight(0xffffff, 1.8);
-        sun.castShadow = true;
-        sun.shadow.camera.left = -1000; sun.shadow.camera.right = 1000;
-        sun.shadow.camera.top = 1000; sun.shadow.camera.bottom = -1000;
-        sun.shadow.mapSize.set(2048, 2048);
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 10000000);
+        
+        const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+        sun.position.set(5000, 10000, 5000);
         scene.add(sun);
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-        // --- PLANETA E ATMOSFERA ---
-        const planetRadius = 637000;
+        // PLANETA
+        const planetRadius = 637100; 
         const planetGroup = new THREE.Group();
         scene.add(planetGroup);
 
-        const planetMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(planetRadius, 128, 128), 
-            new THREE.MeshStandardMaterial({ color: 0x228B22 })
-        );
-        planetGroup.add(planetMesh);
+        const planetGeo = new THREE.SphereGeometry(planetRadius, 128, 128);
+        const planetMat = new THREE.MeshStandardMaterial({ color: 0x154515 });
+        const planet = new THREE.Mesh(planetGeo, planetMat);
+        planetGroup.add(planet);
 
-        // Faixas da Atmosfera
-        const atmosLayers = [
-            { r: planetRadius + 5000, c: 0xadd8e6, o: 0.3 },
-            { r: planetRadius + 15000, c: 0x4682b4, o: 0.2 },
-            { r: planetRadius + 30000, c: 0x000022, o: 0.1 }
-        ];
-        atmosLayers.forEach(l => {
-            const m = new THREE.Mesh(
-                new THREE.SphereGeometry(l.r, 64, 64), 
-                new THREE.MeshBasicMaterial({ color: l.c, side: THREE.BackSide, transparent: true, opacity: l.o })
-            );
-            planetGroup.add(m);
-        });
-
-        // --- PISTA DE POUSO ---
-        const runway = new THREE.Mesh(
-            new THREE.PlaneGeometry(80, 2000), 
-            new THREE.MeshStandardMaterial({ color: 0x333333 })
-        );
-        runway.rotation.x = -Math.PI / 2;
-        runway.position.set(0, planetRadius + 0.1, 1000); // Um pouco acima do solo para evitar flicker
-        planetGroup.add(runway);
-
-        // --- ÁRVORES ESPALHADAS ---
-        const treeCount = 1000;
-        const treeTrunkGeo = new THREE.CylinderGeometry(0.5, 0.5, 2);
-        const treeLeavesGeo = new THREE.ConeGeometry(2, 6, 8);
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-        const leavesMat = new THREE.MeshStandardMaterial({ color: 0x006400 });
-
-        for(let i=0; i<treeCount; i++) {
-            const tree = new THREE.Group();
-            const trunk = new THREE.Mesh(treeTrunkGeo, trunkMat);
-            const leaves = new THREE.Mesh(treeLeavesGeo, leavesMat);
-            leaves.position.y = 3;
-            tree.add(trunk);
-            tree.add(leaves);
-
-            // Posicionamento esférico aleatório
-            const phi = Math.acos(-1 + (2 * i) / treeCount);
-            const theta = Math.sqrt(treeCount * Math.PI) * phi;
-            
-            tree.position.setFromSphericalCoords(planetRadius, phi, theta);
-            tree.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tree.position.clone().normalize());
-            
-            const scale = 0.5 + Math.random() * 2;
-            tree.scale.set(scale, scale, scale);
-            planetGroup.add(tree);
+        // HALO DA ATMOSFERA (3 faixas simuladas por camadas de brilho)
+        function createAtmosphere(radius, color, opacity, scale) {
+            const geo = new THREE.SphereGeometry(radius * scale, 128, 128);
+            const mat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: opacity,
+                side: THREE.BackSide // Visível por dentro e contorno
+            });
+            return new THREE.Mesh(geo, mat);
         }
 
-        // --- AVIÃO ---
-        const plane = new THREE.Group();
+        const atm1 = createAtmosphere(planetRadius, 0x00aaff, 0.15, 1.01); // Faixa baixa
+        const atm2 = createAtmosphere(planetRadius, 0x0066ff, 0.10, 1.02); // Faixa média
+        const atm3 = createAtmosphere(planetRadius, 0x0033ff, 0.05, 1.05); // Faixa alta/Halo
+        planetGroup.add(atm1, atm2, atm3);
+
+        planetGroup.position.y = -planetRadius;
+
+        // PISTA (1000x100)
+        const runwayGeo = new THREE.BoxGeometry(100, 1, 1000);
+        const runwayMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const runway = new THREE.Mesh(runwayGeo, runwayMat);
+        runway.position.set(0, 0.1, 450); // Posicionada para o avião spawnar nela
+        scene.add(runway);
+
+        // Faixas da pista
+        const lineGeo = new THREE.PlaneGeometry(2, 20);
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        for(let i=0; i<10; i++) {
+            const line = new THREE.Mesh(lineGeo, lineMat);
+            line.rotation.x = -Math.PI/2;
+            line.position.set(0, 0.65, i * 100);
+            scene.add(line);
+        }
+
+        // AVIÃO
+        const planeGroup = new THREE.Group();
         const modelInner = new THREE.Group();
-        plane.add(modelInner);
-        
+        planeGroup.add(modelInner);
+
         const cameraAnchor = new THREE.Object3D();
-        cameraAnchor.position.set(0, 10, -35);
-        plane.add(cameraAnchor);
+        cameraAnchor.position.set(0, 7, -25);
+        planeGroup.add(cameraAnchor);
+
+        let speed = 0, engine = false, thr = 0, joy = { x: 0, y: 0 };
 
         new GLTFLoader().load('1.glb', (gltf) => {
             gltf.scene.rotation.y = Math.PI;
-            gltf.scene.position.y = -0.55; 
             gltf.scene.traverse(n => { if(n.isMesh) n.castShadow = true; });
             modelInner.add(gltf.scene);
         });
-        scene.add(plane);
 
-        // Posicionar avião no início da pista
-        plane.position.set(0, planetRadius + 2, 0);
+        scene.add(planeGroup);
+        planeGroup.position.set(0, 1.2, 0); // Spawn em cima da pista
 
-        // --- LÓGICA DE CONTROLE ---
-        let speed = 0, engine = false, thr = 0, joy = { x: 0, y: 0 };
+        // CONTROLES (Mantidos)
         const stick = document.getElementById('joy-stick'), wrap = document.getElementById('joy-wrapper');
-        
         wrap.onpointermove = (e) => {
             if (e.buttons === 1) {
                 const r = wrap.getBoundingClientRect();
-                joy.x = ((e.clientX - r.left - 70) / 70) * 0.6; 
-                joy.y = ((e.clientY - r.top - 70) / 70) * 0.6;  
+                joy.x = ((e.clientX - r.left - 70) / 70) * 0.7; 
+                joy.y = ((e.clientY - r.top - 70) / 70) * 0.7;  
                 stick.style.transform = `translate(${joy.x * 60}px, ${joy.y * 60}px)`;
             }
         };
@@ -153,71 +134,66 @@
         document.getElementById('btn-engine').onclick = (e) => { engine = !engine; e.target.innerText = engine ? "OFF" : "ON"; };
         document.getElementById('input-thr').oninput = (e) => thr = parseFloat(e.target.value);
 
-        // --- LOOP PRINCIPAL ---
         const clock = new THREE.Clock();
-        const raycaster = new THREE.Raycaster();
         const tempVec = new THREE.Vector3();
 
         function loop() {
             const dt = clock.getDelta();
+            
+            // Calculo de altitude relativo à superfície da esfera
+            const distToCenter = planeGroup.position.distanceTo(planetGroup.position);
+            const currentAlt = distToCenter - planetRadius;
+            const isGrounded = currentAlt <= 1.3;
 
-            // Raycast em direção ao centro do planeta (0,0,0 ajustado)
-            const rayDir = plane.position.clone().normalize().negate();
-            raycaster.set(plane.position, rayDir);
-            const intersects = raycaster.intersectObject(planetMesh);
+            // Ajuste de Céu (Ciano quando baixo, Preto quando alto)
+            let skyFactor = THREE.MathUtils.clamp(currentAlt / 20000, 0, 1);
+            let skyCol = new THREE.Color(0x80dfff).lerp(new THREE.Color(0x000000), skyFactor);
+            scene.background = skyCol;
 
-            let groundDist = planetRadius;
-            let groundNormal = plane.position.clone().normalize();
-
-            if (intersects.length > 0) {
-                groundDist = intersects[0].distance;
-            }
-
-            const currentAlt = groundDist; 
-            const isGrounded = currentAlt <= 0.6;
-
-            // Física
-            let limit = (currentAlt > 10) ? 316 : 160;
-            speed = THREE.MathUtils.lerp(speed, engine ? thr * limit : 0, dt * 0.6);
+            // FÍSICA
+            let speedLimit = (currentAlt > 1000) ? 800 : 250;
+            speed = THREE.MathUtils.lerp(speed, engine ? thr * speedLimit : 0, dt * 0.5);
 
             if (isGrounded) {
-                // Alinha com a curvatura
-                const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), groundNormal);
-                plane.quaternion.slerp(targetQuat, dt * 5);
-                
-                plane.rotation.y -= joy.x * dt * 0.8;
-                if (speed > 100) plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, joy.y * 0.2, dt * 1.5);
-                
-                if (speed > 145 && plane.rotation.x > 0.02) {
-                    plane.position.addScaledVector(groundNormal, speed * dt * 0.2);
+                planeGroup.position.y = THREE.MathUtils.lerp(planeGroup.position.y, 1.2, dt * 5);
+                planeGroup.rotation.y -= joy.x * dt * 0.8;
+                planeGroup.rotation.x = THREE.MathUtils.lerp(planeGroup.rotation.x, 0, dt * 2);
+                planeGroup.rotation.z = THREE.MathUtils.lerp(planeGroup.rotation.z, 0, dt * 2);
+
+                if (speed > 130 && joy.y < -0.2) { // Puxar manche para subir
+                    planeGroup.position.y += 2 * dt; 
                 }
             } else {
-                // Voo
-                plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, joy.y * 0.8, dt * 1.5);
-                plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, -joy.x * 0.7, dt * 1.5);
-                plane.rotation.y -= plane.rotation.z * dt * 0.5;
+                planeGroup.rotation.x = THREE.MathUtils.lerp(planeGroup.rotation.x, joy.y * 0.8, dt * 1.5);
+                planeGroup.rotation.z = THREE.MathUtils.lerp(planeGroup.rotation.z, -joy.x * 0.8, dt * 1.5);
+                planeGroup.rotation.y -= planeGroup.rotation.z * dt * 0.5;
 
-                const lift = (speed / 160) * (1 + plane.rotation.x);
-                plane.position.addScaledVector(groundNormal, (lift - 1.05) * 50 * dt);
+                const lift = (speed / 180) * (1 + planeGroup.rotation.x);
+                planeGroup.position.y += (lift - 1.0) * 50 * dt;
+                
+                // Simulação de gravidade/curvatura simples
+                if (currentAlt > 1000) {
+                     // Atração para o centro do planeta
+                     const dirToCenter = new THREE.Vector3().subVectors(planetGroup.position, planeGroup.position).normalize();
+                     planeGroup.position.addScaledVector(dirToCenter, dt * 5);
+                }
             }
 
-            plane.translateZ(speed * dt * 0.85);
+            planeGroup.translateZ(speed * dt);
 
-            // Câmera segue
+            // CÂMERA
             cameraAnchor.getWorldPosition(tempVec);
-            camera.position.copy(tempVec);
-            camera.lookAt(plane.position);
+            camera.position.lerp(tempVec, 0.1);
+            camera.lookAt(planeGroup.position);
 
-            // Luz e Atmosfera acompanham
-            sun.position.copy(plane.position).add(new THREE.Vector3(100, 1000, 100));
-            sun.target = plane;
-
+            // UI
             document.getElementById('ui-spd').innerText = `SPEED: ${Math.round(speed)} kts`;
-            document.getElementById('ui-alt').innerText = `ALTITUDE: ${Math.max(0, Math.round(currentAlt - 0.55))} m`;
+            document.getElementById('ui-alt').innerText = `ALTITUDE: ${Math.max(0, Math.round(currentAlt))} m`;
 
             renderer.render(scene, camera);
             requestAnimationFrame(loop);
         }
+
         loop();
 
         window.addEventListener('resize', () => {
@@ -227,4 +203,4 @@
         });
     </script>
 </body>
-    </html>
+</html>
