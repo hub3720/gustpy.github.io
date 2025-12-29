@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Flight Simulator - Chunks & Árvores</title>
+    <title>Flight Simulator - Árvores Ajustadas</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
         #ui { position: absolute; top: 20px; left: 20px; color: #FFF; pointer-events: none; text-shadow: 2px 2px 4px #000; z-index: 10; }
@@ -39,6 +39,7 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
+        // --- CENA E RENDER ---
         const scene = new THREE.Scene();
         scene.fog = new THREE.Fog(0xd1f3ff, 100, 50000); 
 
@@ -50,6 +51,7 @@
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 5000000);
         
+        // --- LUZES ---
         const sun = new THREE.DirectionalLight(0xffffff, 1.5);
         sun.position.set(100, 500, 100);
         sun.castShadow = true;
@@ -65,6 +67,7 @@
         const ambient = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambient);
 
+        // --- CÉU ---
         const vertexShader = `
             varying vec3 vWorldPosition;
             void main() {
@@ -98,6 +101,7 @@
         const sky = new THREE.Mesh(skyGeo, skyMat);
         scene.add(sky);
 
+        // --- PLANETA ---
         const planetRadius = 637000;
         const planet = new THREE.Mesh(
             new THREE.SphereGeometry(planetRadius, 128, 128), 
@@ -107,20 +111,23 @@
         planet.receiveShadow = true;
         scene.add(planet);
 
-        // --- SISTEMA DE ARVORES E CHUNKS ---
+        // --- SISTEMA DE CHUNKS E ARVORES ---
         const loader = new GLTFLoader();
         const treeModels = [];
         const chunks = new Map();
-        const chunkSize = 400; 
-        const renderDistance = 3; 
+        const chunkSize = 500; 
+        const renderDistance = 4; 
 
-        // Carregar os dois modelos de árvores
         const loadTree = (url) => {
             return new Promise((resolve) => {
                 loader.load(url, (gltf) => {
-                    let mesh;
-                    gltf.scene.traverse(n => { if(n.isMesh) mesh = n; });
-                    resolve(mesh);
+                    gltf.scene.traverse(n => { 
+                        if(n.isMesh) { 
+                            n.castShadow = true; 
+                            n.receiveShadow = true; 
+                        } 
+                    });
+                    resolve(gltf.scene);
                 });
             });
         };
@@ -142,7 +149,6 @@
                 }
             }
             
-            // Remover chunks distantes
             for (const [key, chunk] of chunks) {
                 const [cx, cz] = key.split(',').map(Number);
                 if (Math.abs(cx - px) > renderDistance || Math.abs(cz - pz) > renderDistance) {
@@ -157,23 +163,23 @@
             const x0 = cx * chunkSize;
             const z0 = cz * chunkSize;
 
-            // Área de decolagem 1000x100 livre de árvores
-            const isRunway = (Math.abs(x0) < 500 && Math.abs(z0) < 50);
+            // Pista 1000x100 (X de -500 a 500, Z de -50 a 50)
+            const isRunway = (x0 > -500 && x0 < 500 && z0 > -50 && z0 < 50);
 
             if (!isRunway && treeModels.length > 0) {
-                const treeCount = 15; // Árvores por chunk
+                const treeCount = 12; 
                 for (let i = 0; i < treeCount; i++) {
                     const model = treeModels[Math.floor(Math.random() * treeModels.length)].clone();
                     const tx = x0 + Math.random() * chunkSize;
                     const tz = z0 + Math.random() * chunkSize;
                     
-                    // Alinha com a curvatura do planeta
                     model.position.set(tx, 0, tz);
-                    // Como a escala do planeta é gigante, simplificamos a altura
-                    model.position.y = 0; 
                     model.rotation.y = Math.random() * Math.PI * 2;
-                    const s = 0.5 + Math.random() * 1.5;
-                    model.scale.set(s,s,s);
+                    
+                    // ESCALA AJUSTADA: Aproximadamente o tamanho do avião (ajuste de 8 a 12)
+                    const s = 8 + Math.random() * 5; 
+                    model.scale.set(s, s, s);
+                    
                     group.add(model);
                 }
             }
@@ -258,7 +264,6 @@
 
             planeGroup.translateZ(speed * dt * 0.85);
 
-            // Atualiza chunks de árvores
             updateChunks();
 
             // CÂMERA
@@ -266,7 +271,7 @@
             camera.position.lerp(tempVec, 0.1); 
             camera.lookAt(planeGroup.position);
 
-            // LUZ E CÉU SEGUEM O AVIÃO
+            // SOL E CÉU
             sun.position.set(planeGroup.position.x + 50, planeGroup.position.y + 200, planeGroup.position.z + 50);
             sun.target = planeGroup;
             sky.position.copy(planeGroup.position);
