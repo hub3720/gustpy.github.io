@@ -97,7 +97,7 @@
         loader.load('airport.glb', (gltf) => {
             airport = gltf.scene;
             // Ajuste a posição para o aeroporto ficar levemente acima do planeta
-            airport.position.set(0, 0.1, 0); 
+            airport.position.set(0, 00.1, 0); 
             airport.traverse(n => { if(n.isMesh) n.receiveShadow = true; });
             scene.add(airport);
         });
