@@ -2,16 +2,16 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Flight Simulator - Orbital Radio</title>
+    <title>Flight Simulator - Touch Orbital</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; touch-action: none; }
         #ui { position: absolute; top: 20px; left: 20px; color: #FFF; pointer-events: none; text-shadow: 2px 2px 4px #000; z-index: 10; }
         .info { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-        #joy-wrapper { position: absolute; bottom: 30px; left: 30px; width: 140px; height: 140px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid #FFF; touch-action: none; z-index: 10; }
+        #joy-wrapper { position: absolute; bottom: 30px; left: 30px; width: 140px; height: 140px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid #FFF; touch-action: none; z-index: 20; }
         #joy-stick { position: absolute; width: 50px; height: 50px; background: #FFF; border-radius: 50%; top: 45px; left: 45px; }
-        .thr-box { position: absolute; bottom: 30px; left: 200px; display: flex; flex-direction: column; align-items: center; color: #FFF; z-index: 10; }
+        .thr-box { position: absolute; bottom: 30px; left: 200px; display: flex; flex-direction: column; align-items: center; color: #FFF; z-index: 20; }
         input[type=range] { -webkit-appearance: slider-vertical; width: 30px; height: 140px; }
-        .controls { position: absolute; bottom: 20px; right: 20px; z-index: 10; }
+        .controls { position: absolute; bottom: 20px; right: 20px; z-index: 20; }
         button { padding: 12px 20px; cursor: pointer; background: rgba(255,255,255,0.2); color: #FFF; border: 2px solid #FFF; font-weight: bold; }
     </style>
 </head>
@@ -39,7 +39,7 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // --- VOZ DE RÁDIO ---
         function speakRadio(text) {
             if (window.speechSynthesis.speaking) return;
             const utterance = new SpeechSynthesisUtterance(text);
@@ -62,7 +62,7 @@
         scene.add(sun);
         scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-        // --- CÉU ---
+        // --- CÉU E PLANETA ---
         const skyGeo = new THREE.SphereGeometry(2000000, 32, 15);
         const skyMat = new THREE.ShaderMaterial({
             vertexShader: `varying vec3 vWorldPosition; void main() { vec4 worldPosition = modelMatrix * vec4( position, 1.0 ); vWorldPosition = worldPosition.xyz; gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 ); }`,
@@ -72,7 +72,6 @@
         });
         scene.add(new THREE.Mesh(skyGeo, skyMat));
 
-        // --- PLANETA ---
         const planetRadius = 637000;
         const planet = new THREE.Mesh(new THREE.SphereGeometry(planetRadius, 128, 128), new THREE.MeshStandardMaterial({ color: 0x337a33 }));
         planet.position.y = -planetRadius; 
@@ -102,34 +101,53 @@
         scene.add(planeGroup);
         planeGroup.position.set(0, 0.6, 1400);
 
-        // --- VARIÁVEIS DA CÂMERA ORBITAL ---
-        let camTheta = Math.PI, camPhi = 0.3, camDist = 35;
-        let targetCamTheta = Math.PI, targetCamPhi = 0.3;
-        let isMouseDown = false;
+        // --- CONTROLE DE CÂMERA (TOUCH + MOUSE) ---
+        let camTheta = Math.PI, camPhi = 0.2, camDist = 35;
+        let targetCamTheta = Math.PI, targetCamPhi = 0.2;
+        let isMovingCam = false;
+        let lastTouchX = 0, lastTouchY = 0;
 
-        window.addEventListener('mousedown', () => isMouseDown = true);
-        window.addEventListener('mouseup', () => isMouseDown = false);
-        window.addEventListener('mousemove', (e) => {
-            if(isMouseDown) {
-                targetCamTheta += e.movementX * 0.01;
-                targetCamPhi = Math.max(0.05, Math.min(Math.PI/2 - 0.1, targetCamPhi + e.movementY * 0.01));
-            }
-        });
-
-        // --- CONTROLES ---
-        const stick = document.getElementById('joy-stick'), wrap = document.getElementById('joy-wrapper');
-        wrap.onpointermove = (e) => {
-            if (e.buttons === 1) {
-                const r = wrap.getBoundingClientRect();
-                joy.x = ((e.clientX - r.left - 70) / 70) * 0.6; 
-                joy.y = ((e.clientY - r.top - 70) / 70) * 0.6;  
-                stick.style.transform = `translate(${joy.x * 60}px, ${joy.y * 60}px)`;
-            }
+        const startMove = (x, y) => { isMovingCam = true; lastTouchX = x; lastTouchY = y; };
+        const moveUpdate = (x, y) => {
+            if (!isMovingCam) return;
+            const dx = x - lastTouchX;
+            const dy = y - lastTouchY;
+            targetCamTheta += dx * 0.007;
+            targetCamPhi = Math.max(0.05, Math.min(Math.PI/2 - 0.1, targetCamPhi + dy * 0.007));
+            lastTouchX = x;
+            lastTouchY = y;
         };
-        wrap.onpointerup = () => { joy = { x: 0, y: 0 }; stick.style.transform = `translate(0,0)`; };
+
+        window.addEventListener('mousedown', e => startMove(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => moveUpdate(e.clientX, e.clientY));
+        window.addEventListener('mouseup', () => isMovingCam = false);
+
+        window.addEventListener('touchstart', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && !document.getElementById('joy-wrapper').contains(e.target)) {
+                startMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+        window.addEventListener('touchmove', e => {
+            if (isMovingCam) moveUpdate(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+        window.addEventListener('touchend', () => isMovingCam = false);
+
+        // --- JOYSTICK ---
+        const stick = document.getElementById('joy-stick'), wrap = document.getElementById('joy-wrapper');
+        const handleJoy = (e) => {
+            const r = wrap.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            joy.x = ((clientX - r.left - 70) / 70) * 0.6; 
+            joy.y = ((clientY - r.top - 70) / 70) * 0.6;  
+            stick.style.transform = `translate(${joy.x * 60}px, ${joy.y * 60}px)`;
+        };
+        wrap.addEventListener('pointermove', e => { if(e.buttons === 1 || e.touches) handleJoy(e); });
+        wrap.addEventListener('pointerup', () => { joy = { x: 0, y: 0 }; stick.style.transform = `translate(0,0)`; });
+
         document.getElementById('btn-engine').onclick = (e) => { 
             engine = !engine; e.target.innerText = engine ? "OFF" : "ON"; 
-            if(engine) { audioCtx.resume(); speakRadio("Decolagem autorizada."); }
+            if(engine) speakRadio("Motores ligados. Pista 14 liberada.");
         };
         document.getElementById('input-thr').oninput = (e) => thr = parseFloat(e.target.value);
 
@@ -146,8 +164,8 @@
             speed = THREE.MathUtils.lerp(speed, engine ? thr * ((currentAlt > 10) ? 316 : 160) : 0, dt * 0.6);
 
             if (engine && Date.now() - lastAlert > 8000) {
-                if (isGrounded && speed > 135) { speakRadio("Velocidade de decisão. Rotate."); lastAlert = Date.now(); }
-                else if (!isGrounded && speed < 90) { speakRadio("Stall iminente!"); lastAlert = Date.now(); }
+                if (isGrounded && speed > 135) { speakRadio("V1. Rotate."); lastAlert = Date.now(); }
+                else if (!isGrounded && speed < 90) { speakRadio("Atenção, estol!"); lastAlert = Date.now(); }
             }
 
             if (isGrounded) {
@@ -164,16 +182,12 @@
             }
             planeGroup.translateZ(speed * dt * 0.85);
 
-            // --- LÓGICA DE CÂMERA ORBITAL FLUIDA ---
-            // Suaviza a rotação desejada
+            // CÂMERA FLUIDA
             camTheta = THREE.MathUtils.lerp(camTheta, targetCamTheta, 0.1);
             camPhi = THREE.MathUtils.lerp(camPhi, targetCamPhi, 0.1);
-
-            // Converte coordenadas esféricas para cartesianas relativas ao avião
             const x = camDist * Math.sin(camTheta) * Math.cos(camPhi);
             const y = camDist * Math.sin(camPhi);
             const z = camDist * Math.cos(camTheta) * Math.cos(camPhi);
-
             camera.position.set(planeGroup.position.x + x, planeGroup.position.y + y, planeGroup.position.z + z);
             camera.lookAt(planeGroup.position);
 
@@ -194,4 +208,4 @@
         });
     </script>
 </body>
-    </html>
+</html>
